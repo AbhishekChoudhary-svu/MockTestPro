@@ -10,10 +10,6 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/profile";
 
-  const [devEmail, setDevEmail] = useState("developer@mocktestpro.com");
-  const [devName, setDevName] = useState("Mock Developer");
-  const [devRole, setDevRole] = useState("admin");
-  const [isDevMode, setIsDevMode] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -26,22 +22,6 @@ function LoginForm() {
     setLoading(true);
     try {
       await signIn("google", { callbackUrl });
-    } catch (e) {
-      console.error(e);
-      setLoading(false);
-    }
-  };
-
-  const handleDevLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await signIn("developer-login", {
-        email: devEmail,
-        name: devName,
-        role: devRole,
-        callbackUrl,
-      });
     } catch (e) {
       console.error(e);
       setLoading(false);
@@ -98,87 +78,6 @@ function LoginForm() {
           </svg>
           Continue with Google
         </button>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center" aria-hidden="true">
-            <div className="w-full border-t border-slate-700" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="bg-slate-800 px-2 text-slate-400 font-sans">Or developer options</span>
-          </div>
-        </div>
-
-        {!isDevMode ? (
-          <button
-            type="button"
-            onClick={() => setIsDevMode(true)}
-            className="w-full text-center text-xs font-semibold text-[#F59E0B] hover:text-[#e08f0a] transition-colors font-sans"
-          >
-            Show Developer Bypass Options
-          </button>
-        ) : (
-          <form onSubmit={handleDevLogin} className="space-y-4 font-sans">
-            <div>
-              <label htmlFor="dev-name" className="block text-xs font-semibold text-slate-300">
-                Name
-              </label>
-              <input
-                id="dev-name"
-                type="text"
-                required
-                value={devName}
-                onChange={(e) => setDevName(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-slate-600 bg-slate-700 text-white px-3 py-2 text-sm shadow-sm focus:border-[#1A56DB] focus:outline-none focus:ring-1 focus:ring-[#1A56DB]"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="dev-email" className="block text-xs font-semibold text-slate-300">
-                Email
-              </label>
-              <input
-                id="dev-email"
-                type="email"
-                required
-                value={devEmail}
-                onChange={(e) => setDevEmail(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-slate-600 bg-slate-700 text-white px-3 py-2 text-sm shadow-sm focus:border-[#1A56DB] focus:outline-none focus:ring-1 focus:ring-[#1A56DB]"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="dev-role" className="block text-xs font-semibold text-slate-300">
-                Role
-              </label>
-              <select
-                id="dev-role"
-                value={devRole}
-                onChange={(e) => setDevRole(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-slate-600 bg-slate-700 text-white px-3 py-2 text-sm shadow-sm focus:border-[#1A56DB] focus:outline-none focus:ring-1 focus:ring-[#1A56DB]"
-              >
-                <option value="student">Student</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 rounded-md bg-[#F59E0B] px-3 py-2 text-sm font-semibold text-slate-900 shadow-sm transition-all hover:bg-[#e08f0a] disabled:opacity-50"
-              >
-                Bypass & Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsDevMode(false)}
-                className="rounded-md border border-slate-600 px-3 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-700"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        )}
       </div>
     </div>
   );
