@@ -3,8 +3,11 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { dbConnect } from "@/lib/mongoose";
 import Exam from "@/models/Exam";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Question from "@/models/Question";
+
+// Force model registration and prevent tree-shaking
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _ = Question.modelName;
 
 export async function GET(
   req: NextRequest,

@@ -6,6 +6,12 @@ import { authOptions } from "@/lib/auth";
 import { dbConnect } from "@/lib/mongoose";
 import Attempt from "@/models/Attempt";
 import User from "@/models/User";
+import Exam from "@/models/Exam";
+import Question from "@/models/Question";
+
+// Force model registration and prevent tree-shaking
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _ = [Exam.modelName, Question.modelName];
 
 export async function GET(
   req: NextRequest,

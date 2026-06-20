@@ -7,6 +7,11 @@ import { dbConnect } from "@/lib/mongoose";
 import Attempt from "@/models/Attempt";
 import Exam from "@/models/Exam";
 import User from "@/models/User";
+import Question from "@/models/Question";
+
+// Force model registration and prevent tree-shaking
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _ = Question.modelName;
 
 export async function POST(req: NextRequest) {
   try {

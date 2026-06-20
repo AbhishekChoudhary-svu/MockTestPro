@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   Loader2,
   X,
+  Lock,
+  Maximize,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -64,7 +66,6 @@ function formatTime(seconds: number) {
 }
 
 function buildFlatIndex(sections: ISection[]) {
-  // Returns array of { sectionIdx, qIdx } for each question
   const flat: { sectionIdx: number; qIdx: number }[] = [];
   sections.forEach((sec, si) => {
     sec.questions.forEach((_, qi) => flat.push({ sectionIdx: si, qIdx: qi }));
@@ -98,14 +99,30 @@ export default function LiveExamPage({
   const overallTimerRef = useRef(0);
   const sectionTimerRef = useRef(0);
 
+  // Section blocking: track how long user has spent in each section
+  // sectionUnlocked[i] = true means section i's timer has expired and user can move forward
+  const [sectionTimerExpired, setSectionTimerExpired] = useState(false);
+  const sectionTimerExpiredRef = useRef(false);
+
   // Anti-cheat
   const [tabWarnings, setTabWarnings] = useState(0);
   const [showWarningBanner, setShowWarningBanner] = useState(false);
   const tabWarningsRef = useRef(0);
 
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  // Flag to suppress visibilitychange events during fullscreen transitions
+  const fullscreenTransitionRef = useRef(false);
+  // Grace period: don't trigger anti-cheat for first 5 seconds after page load
+  const antiCheatReadyRef = useRef(false);
+
   // Submit modal
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Section transition modal — shown when section timer expires
+  const [showSectionTransition, setShowSectionTransition] = useState(false);
+  const [transitionCountdown, setTransitionCountdown] = useState(5);
 
   // Question start time for timeSpent tracking
   const questionStartRef = useRef<number>(Date.now());
@@ -123,6 +140,58 @@ export default function LiveExamPage({
     },
     [exam]
   );
+
+  // ── Fullscreen utilities ──
+  const enterFullscreen = async () => {
+    try {
+      await document.documentElement.requestFullscreen();
+    } catch {
+      // not supported
+    }
+  };
+
+  const exitFullscreen = () => {
+    try {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      }
+    } catch {
+      // not supported
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      const inFs = !!document.fullscreenElement;
+      setIsFullscreen(inFs);
+      // Mark that we're in a fullscreen transition — suppress anti-cheat for 2s
+      fullscreenTransitionRef.current = true;
+      setTimeout(() => {
+        fullscreenTransitionRef.current = false;
+      }, 2000);
+    };
+    document.addEventListener("fullscreenchange", handleFsChange);
+
+    // Only request fullscreen if not already in it (instructions page may have already done it)
+    if (!document.fullscreenElement) {
+      fullscreenTransitionRef.current = true;
+      enterFullscreen().finally(() => {
+        setTimeout(() => { fullscreenTransitionRef.current = false; }, 2000);
+      });
+    } else {
+      setIsFullscreen(true);
+    }
+
+    // Enable anti-cheat after 5-second grace period (enough time for fullscreen to settle)
+    const gracePeriod = setTimeout(() => {
+      antiCheatReadyRef.current = true;
+    }, 5000);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFsChange);
+      clearTimeout(gracePeriod);
+    };
+  }, []);
 
   // ── Load exam + attempt ──
   useEffect(() => {
@@ -144,6 +213,7 @@ export default function LiveExamPage({
       const attemptData = await attemptRes.json();
 
       if (attemptData.status === "submitted") {
+        exitFullscreen();
         router.push(`/exam/${examId}/result/${attemptId}`);
         return;
       }
@@ -161,9 +231,24 @@ export default function LiveExamPage({
       overallTimerRef.current = remaining;
       setOverallTimer(remaining);
 
-      const sectionSec = examData.sections[attemptData.currentSection ?? 0].duration * 60;
-      sectionTimerRef.current = sectionSec;
-      setSectionTimer(sectionSec);
+      const currentSectionIdx = attemptData.currentSection ?? 0;
+      const sectionSec = examData.sections[currentSectionIdx].duration * 60;
+      // Restore remaining section timer from localStorage if available
+      const storedSectionRemaining = sessionStorage.getItem(
+        `section_timer_${attemptId}_${currentSectionIdx}`
+      );
+      let sectionRemaining = sectionSec;
+      if (storedSectionRemaining) {
+        sectionRemaining = parseInt(storedSectionRemaining, 10);
+      }
+      sectionTimerRef.current = sectionRemaining;
+      setSectionTimer(sectionRemaining);
+
+      // If section time already expired (stored as 0), mark as unlocked
+      if (sectionRemaining <= 0) {
+        setSectionTimerExpired(true);
+        sectionTimerExpiredRef.current = true;
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -180,12 +265,22 @@ export default function LiveExamPage({
       setOverallTimer(overallTimerRef.current);
 
       // Section timer
-      sectionTimerRef.current = Math.max(0, sectionTimerRef.current - 1);
-      setSectionTimer(sectionTimerRef.current);
+      if (sectionTimerRef.current > 0) {
+        sectionTimerRef.current = Math.max(0, sectionTimerRef.current - 1);
+        setSectionTimer(sectionTimerRef.current);
 
-      // Section expired → auto advance
-      if (sectionTimerRef.current === 0) {
-        handleSectionExpired();
+        // Persist remaining section time for page reloads
+        sessionStorage.setItem(
+          `section_timer_${attemptId}_${activeSectionIdx}`,
+          String(sectionTimerRef.current)
+        );
+
+        // Section just expired → unlock next section
+        if (sectionTimerRef.current === 0 && !sectionTimerExpiredRef.current) {
+          sectionTimerExpiredRef.current = true;
+          setSectionTimerExpired(true);
+          handleSectionTimerExpired();
+        }
       }
 
       // Overall expired → auto submit
@@ -196,11 +291,17 @@ export default function LiveExamPage({
     }, 1000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exam]);
+  }, [exam, activeSectionIdx]);
 
   // ── Anti-Cheat: Tab visibility ──
   useEffect(() => {
     const handleVisibility = () => {
+      // Skip if:
+      // 1. We're still in the startup grace period (fullscreen settling)
+      // 2. A fullscreen transition is in progress (browser briefly hides page)
+      if (!antiCheatReadyRef.current) return;
+      if (fullscreenTransitionRef.current) return;
+
       if (document.hidden) {
         tabWarningsRef.current += 1;
         setTabWarnings(tabWarningsRef.current);
@@ -238,18 +339,46 @@ export default function LiveExamPage({
     }
   };
 
-  // ── Section Expired ──
-  const handleSectionExpired = useCallback(() => {
+  // ── Section Timer Expired ──
+  const handleSectionTimerExpired = useCallback(() => {
     if (!exam) return;
     if (activeSectionIdx < exam.sections.length - 1) {
-      const nextIdx = activeSectionIdx + 1;
+      // Show transition modal with 5s countdown before auto-advancing
+      setShowSectionTransition(true);
+      setTransitionCountdown(5);
+    } else {
+      // Last section expired → auto submit
+      handleAutoSubmit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exam, activeSectionIdx]);
+
+  // Section transition countdown
+  useEffect(() => {
+    if (!showSectionTransition) return;
+    if (transitionCountdown <= 0) {
+      setShowSectionTransition(false);
+      advanceToNextSection();
+      return;
+    }
+    const t = setTimeout(() => setTransitionCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSectionTransition, transitionCountdown]);
+
+  const advanceToNextSection = useCallback(() => {
+    if (!exam) return;
+    const nextIdx = activeSectionIdx + 1;
+    if (nextIdx < exam.sections.length) {
       setActiveSectionIdx(nextIdx);
       setActiveQIdx(0);
       const nextSectionSec = exam.sections[nextIdx].duration * 60;
       sectionTimerRef.current = nextSectionSec;
       setSectionTimer(nextSectionSec);
-    } else {
-      handleAutoSubmit();
+      // Reset section lock for new section
+      setSectionTimerExpired(false);
+      sectionTimerExpiredRef.current = false;
+      autoSave();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exam, activeSectionIdx]);
@@ -263,8 +392,8 @@ export default function LiveExamPage({
 
   const submitExam = async () => {
     setSubmitting(true);
+    setShowSubmitModal(false);
     try {
-      // Final save first
       await fetch(`/api/attempts/${attemptId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -274,6 +403,7 @@ export default function LiveExamPage({
         method: "POST",
       });
       if (res.ok) {
+        exitFullscreen();
         router.push(`/exam/${examId}/result/${attemptId}`);
       }
     } catch (err) {
@@ -332,9 +462,15 @@ export default function LiveExamPage({
   };
 
   // ── Navigation ──
+  // Section is "navigable" only if:
+  //  - It's the current active section, OR
+  //  - It's a previous section (already completed, locked for editing - not allowed)
+  //  - Future sections are blocked until sectionTimer expires
   const navigateTo = (si: number, qi: number) => {
-    // Prevent going to a locked (previous) section
+    // Prevent going to previous sections (locked after leaving)
     if (si < activeSectionIdx) return;
+    // Prevent jumping to FUTURE sections before timer expires
+    if (si > activeSectionIdx) return;
     recordTimeSpent();
     setActiveSectionIdx(si);
     setActiveQIdx(qi);
@@ -346,16 +482,15 @@ export default function LiveExamPage({
     recordTimeSpent();
     const section = exam.sections[activeSectionIdx];
     if (activeQIdx < section.questions.length - 1) {
+      // Move to next question in same section
       setActiveQIdx(activeQIdx + 1);
     } else if (activeSectionIdx < exam.sections.length - 1) {
-      // Move to next section
-      const nextIdx = activeSectionIdx + 1;
-      setActiveSectionIdx(nextIdx);
-      setActiveQIdx(0);
-      const nextSec = exam.sections[nextIdx].duration * 60;
-      sectionTimerRef.current = nextSec;
-      setSectionTimer(nextSec);
-      await autoSave();
+      // At last question of section → only advance if timer has expired
+      if (sectionTimerExpired) {
+        advanceToNextSection();
+        await autoSave();
+      }
+      // If timer hasn't expired, do nothing (user must wait)
     }
     questionStartRef.current = Date.now();
   };
@@ -377,7 +512,6 @@ export default function LiveExamPage({
     if (!r) return "unvisited";
     if (r.isMarkedForReview) return "marked";
     if (r.selectedOption) return "answered";
-    // visited but no answer: check if it's before current position
     const currentFlat = flatIndex.findIndex(
       (f) => f.sectionIdx === activeSectionIdx && f.qIdx === activeQIdx
     );
@@ -394,6 +528,12 @@ export default function LiveExamPage({
     marked: "bg-amber-400 text-white border border-amber-500",
     skipped: "bg-red-100 text-red-700 border border-red-200",
   };
+
+  // ── Derived state ──
+  const isLastQuestion = exam ? activeQIdx === exam.sections[activeSectionIdx].questions.length - 1 : false;
+  const isLastSection = exam ? activeSectionIdx === exam.sections.length - 1 : false;
+  // Can only move to next section if timer expired and not already on last section
+  const canAdvanceSection = sectionTimerExpired && !isLastSection;
 
   // ── Loading / Auth ──
   if (status === "loading" || loading) {
@@ -427,8 +567,6 @@ export default function LiveExamPage({
   const question = section?.questions[activeQIdx];
   const rIdx = getResponseIdx(activeSectionIdx, activeQIdx);
   const currentResponse = responses[rIdx] ?? null;
-  const isLastSection = activeSectionIdx === exam.sections.length - 1;
-  const isLastQuestion = activeQIdx === section.questions.length - 1;
 
   // Stats for palette legend
   const answeredCount = responses.filter((r) => r?.selectedOption).length;
@@ -436,6 +574,32 @@ export default function LiveExamPage({
 
   return (
     <div className="flex h-screen flex-col bg-slate-900 text-white overflow-hidden font-sans select-none">
+
+      {/* ── Section Timer Expired Transition Modal ── */}
+      {showSectionTransition && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-slate-800 border border-slate-600 rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl">
+            <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/20 border border-amber-500/30">
+              <Clock className="h-7 w-7 text-amber-400" />
+            </div>
+            <h2 className="text-xl font-extrabold text-white mb-2 font-heading">
+              Section Time&apos;s Up!
+            </h2>
+            <p className="text-sm text-slate-400 mb-1">
+              Moving to next section in
+            </p>
+            <p className="text-5xl font-black text-amber-400 my-4">{transitionCountdown}</p>
+            <p className="text-xs text-slate-500">You will be automatically moved to the next section.</p>
+            <button
+              onClick={() => { setShowSectionTransition(false); advanceToNextSection(); }}
+              className="mt-6 w-full rounded-xl bg-amber-500 hover:bg-amber-600 py-3 text-sm font-bold text-slate-900 transition-colors"
+            >
+              Proceed Now
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Top Bar ── */}
       <header className="flex-shrink-0 bg-slate-800 border-b border-slate-700 px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -443,18 +607,20 @@ export default function LiveExamPage({
             {exam.title}
           </span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {/* Section Timer */}
           <div
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-bold ${
-              sectionTimer < 120
+              sectionTimer < 120 && sectionTimer > 0
                 ? "bg-red-600 text-white animate-pulse"
+                : sectionTimerExpired
+                ? "bg-emerald-700 text-white"
                 : "bg-slate-700 text-slate-200"
             }`}
           >
             <Clock className="h-4 w-4" />
-            <span className="text-xs text-slate-400 mr-0.5">Section:</span>
-            {formatTime(sectionTimer)}
+            <span className="text-xs text-slate-300 mr-0.5">Section:</span>
+            {sectionTimerExpired ? "Done ✓" : formatTime(sectionTimer)}
           </div>
           {/* Overall Timer */}
           <div
@@ -468,6 +634,17 @@ export default function LiveExamPage({
             <span className="text-xs mr-0.5 opacity-70">Total:</span>
             {formatTime(overallTimer)}
           </div>
+          {/* Fullscreen re-enter button */}
+          {!isFullscreen && (
+            <button
+              onClick={enterFullscreen}
+              className="flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-3 py-1.5 text-xs font-bold text-slate-900 transition-colors"
+              title="Re-enter fullscreen"
+            >
+              <Maximize className="h-4 w-4" />
+              Fullscreen
+            </button>
+          )}
           {/* Submit Button */}
           <button
             onClick={() => setShowSubmitModal(true)}
@@ -495,27 +672,63 @@ export default function LiveExamPage({
       {/* ── Section Tabs ── */}
       <div className="flex-shrink-0 bg-slate-800 border-b border-slate-700 px-4 flex items-center gap-1 overflow-x-auto py-2">
         {exam.sections.map((sec, si) => {
-          const locked = si < activeSectionIdx;
-          const active = si === activeSectionIdx;
+          const isPrev = si < activeSectionIdx;   // completed, locked
+          const isNext = si > activeSectionIdx;   // future, blocked until timer expires
+          const isActive = si === activeSectionIdx;
+          // Future sections are unlocked only after the current section timer expires AND they are the immediate next
+          const canGoToNext = si === activeSectionIdx + 1 && sectionTimerExpired;
+          const locked = isPrev || (isNext && !canGoToNext);
+
           return (
             <button
               key={si}
-              onClick={() => !locked && navigateTo(si, 0)}
+              onClick={() => {
+                if (locked) return;
+                if (si === activeSectionIdx) return;
+                // Can only move to next section (si === activeSectionIdx + 1) when timer expired
+                if (canGoToNext) {
+                  advanceToNextSection();
+                }
+              }}
               disabled={locked}
-              className={`whitespace-nowrap rounded-md px-3 py-1 text-xs font-bold transition-all ${
-                active
+              className={`whitespace-nowrap rounded-md px-3 py-1 text-xs font-bold transition-all flex items-center gap-1 ${
+                isActive
                   ? "bg-blue-600 text-white"
-                  : locked
+                  : isPrev
                   ? "bg-slate-700/40 text-slate-500 cursor-not-allowed"
-                  : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                  : isNext && !canGoToNext
+                  ? "bg-slate-700/40 text-slate-500 cursor-not-allowed"
+                  : "bg-emerald-700 text-white hover:bg-emerald-600"
               }`}
             >
+              {isPrev && <Lock className="h-3 w-3" />}
+              {isNext && !canGoToNext && <Lock className="h-3 w-3" />}
               {sec.name}
-              {locked && " 🔒"}
+              {isActive && !sectionTimerExpired && (
+                <span className="ml-1 text-[10px] text-blue-300">({formatTime(sectionTimer)})</span>
+              )}
+              {isActive && sectionTimerExpired && (
+                <span className="ml-1 text-[10px] text-emerald-300">✓ Time Done</span>
+              )}
             </button>
           );
         })}
       </div>
+
+      {/* ── Section Blocking Notice ── */}
+      {!sectionTimerExpired && (
+        <div className="flex-shrink-0 bg-blue-900/40 border-b border-blue-700/40 px-4 py-2 flex items-center gap-2 text-xs text-blue-300 font-semibold">
+          <Lock className="h-3.5 w-3.5 flex-shrink-0" />
+          <span>
+            You must complete this section&apos;s time ({formatTime(sectionTimer)} remaining) before you can advance to the next section.
+          </span>
+        </div>
+      )}
+      {sectionTimerExpired && !isLastSection && (
+        <div className="flex-shrink-0 bg-emerald-900/30 border-b border-emerald-700/40 px-4 py-2 flex items-center gap-2 text-xs text-emerald-300 font-semibold">
+          <span>✓ Section time completed! You may now move to the next section using the tab above or &quot;Save &amp; Next&quot; on the last question.</span>
+        </div>
+      )}
 
       {/* ── Main Body ── */}
       <div className="flex flex-1 overflow-hidden">
@@ -609,10 +822,28 @@ export default function LiveExamPage({
               </button>
               <button
                 onClick={goNext}
-                disabled={isLastSection && isLastQuestion}
-                className="flex items-center gap-1 rounded-lg bg-blue-600 hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled={(isLastQuestion && isLastSection) || (isLastQuestion && !isLastSection && !canAdvanceSection)}
+                title={
+                  isLastQuestion && !isLastSection && !canAdvanceSection
+                    ? `Wait ${formatTime(sectionTimer)} for section timer to complete`
+                    : undefined
+                }
+                className={`flex items-center gap-1 rounded-lg px-4 py-2 text-xs font-bold text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                  isLastQuestion && !isLastSection && !canAdvanceSection
+                    ? "bg-slate-600"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
               >
-                Save & Next <ChevronRight className="h-4 w-4" />
+                {isLastQuestion && !isLastSection && !canAdvanceSection ? (
+                  <>
+                    <Lock className="h-3.5 w-3.5" />
+                    Locked ({formatTime(sectionTimer)})
+                  </>
+                ) : (
+                  <>
+                    Save &amp; Next <ChevronRight className="h-4 w-4" />
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -642,21 +873,23 @@ export default function LiveExamPage({
 
           {/* Question Grid per section */}
           {exam.sections.map((sec, si) => {
-            const locked = si < activeSectionIdx;
-            const isActive = si === activeSectionIdx;
+            const isPrevSection = si < activeSectionIdx;
+            const isFutureSection = si > activeSectionIdx;
+            const isActiveSection = si === activeSectionIdx;
             return (
               <div key={si}>
                 <p
                   className={`text-[11px] font-bold uppercase tracking-wider mb-2 flex items-center gap-1 ${
-                    isActive ? "text-blue-400" : locked ? "text-slate-600" : "text-slate-400"
+                    isActiveSection ? "text-blue-400" : isPrevSection ? "text-slate-600" : "text-slate-500"
                   }`}
                 >
-                  {sec.name} {locked && "🔒"}
+                  {isPrevSection && <Lock className="h-3 w-3" />}
+                  {isFutureSection && <Lock className="h-3 w-3" />}
+                  {sec.name}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {sec.questions.map((_, qi) => {
-                    const isCurrentQ =
-                      si === activeSectionIdx && qi === activeQIdx;
+                    const isCurrentQ = si === activeSectionIdx && qi === activeQIdx;
                     const qNum =
                       exam.sections
                         .slice(0, si)
@@ -664,17 +897,18 @@ export default function LiveExamPage({
                       qi +
                       1;
                     const qStatus = getQStatus(si, qi);
+                    const lockedQ = isPrevSection || isFutureSection;
                     return (
                       <button
                         key={qi}
-                        onClick={() => !locked && navigateTo(si, qi)}
-                        disabled={locked}
+                        onClick={() => !lockedQ && navigateTo(si, qi)}
+                        disabled={lockedQ}
                         className={`h-8 w-8 rounded text-[11px] font-bold transition-all ${
                           isCurrentQ
                             ? "ring-2 ring-blue-400 ring-offset-1 ring-offset-slate-800 scale-110"
                             : ""
                         } ${
-                          locked
+                          lockedQ
                             ? "opacity-30 cursor-not-allowed bg-slate-700 text-slate-500"
                             : statusColor[qStatus]
                         }`}

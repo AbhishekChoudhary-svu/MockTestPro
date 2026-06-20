@@ -79,6 +79,12 @@ export default function InstructionsPage({
       });
       const data = await res.json();
       if (res.ok && data.attemptId) {
+        // Enter fullscreen before navigating to exam
+        try {
+          await document.documentElement.requestFullscreen();
+        } catch {
+          // Fullscreen not supported or denied — continue anyway
+        }
         router.push(`/exam/${id}/test/${data.attemptId}`);
       } else {
         setError(data.error || "Failed to start the test.");
@@ -246,9 +252,9 @@ export default function InstructionsPage({
           <ul className="space-y-3.5">
             {[
               "This is a timed test. The overall timer and each section timer run simultaneously. When a section timer expires, you are automatically moved to the next section.",
-              "Section Locking: Once you move to the next section, you CANNOT go back to a previous one.",
+              "Section Locking: Sections are time-locked. You must spend the full section duration before you can proceed. You cannot jump ahead — only forward navigation is allowed after the section timer expires.",
               "Negative Marking applies. Skipped questions score 0. Only correct answers add marks.",
-              "Anti-Cheat: Switching tabs or minimizing the window will trigger a warning. After 3 violations, the test is auto-submitted.",
+              "Anti-Cheat: The test runs in fullscreen mode. Switching tabs or minimizing the window will trigger a warning. After 3 violations, the test is auto-submitted.",
               "Do NOT refresh the page during the exam. Your responses are auto-saved on every navigation action.",
             ].map((rule, i) => (
               <li key={i} className="flex gap-3 items-start text-sm text-slate-600">
