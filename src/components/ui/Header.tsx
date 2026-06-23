@@ -8,8 +8,6 @@ import {
   User,
   LogOut,
   LayoutDashboard,
-  Menu,
-  X,
   GraduationCap,
   ClipboardList,
 } from "lucide-react";
@@ -36,18 +34,10 @@ function getInitials(name?: string | null): string {
 export function Header() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isAdmin = session?.user?.role === "admin";
   const isLoggedIn = status === "authenticated" && session?.user;
   const userInitials = getInitials(session?.user?.name);
-
-  
-
-  const isActive = (href: string) => {
-    if (href === "/") return pathname === "/";
-    return pathname.startsWith(href);
-  };
 
   // Reusable dropdown content used on both desktop and mobile
   const UserDropdown = () => (
