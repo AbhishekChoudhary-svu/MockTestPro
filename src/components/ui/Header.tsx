@@ -4,7 +4,34 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { User, LogOut, LayoutDashboard, Menu, X, GraduationCap } from "lucide-react";
+import {
+  User,
+  LogOut,
+  LayoutDashboard,
+  Menu,
+  X,
+  GraduationCap,
+  ClipboardList,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+
+function getInitials(name?: string | null): string {
+  if (!name) return "U";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((n) => n[0].toUpperCase())
+    .slice(0, 2)
+    .join("");
+}
 
 export function Header() {
   const { data: session, status } = useSession();
@@ -13,78 +40,115 @@ export function Header() {
 
   const isAdmin = session?.user?.role === "admin";
   const isLoggedIn = status === "authenticated" && session?.user;
+  const userInitials = getInitials(session?.user?.name);
 
-  const navLinks = [
-    
-    { label: "Exams", href: "/exams" },
-    { label: "My Attempts", href: "/my-tests" },
-  ];
-
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-  };
+  
 
   const isActive = (href: string) => {
-    if (href === "/") {
-      return pathname === "/";
-    }
+    if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
   };
+
+  // Reusable dropdown content used on both desktop and mobile
+  const UserDropdown = () => (
+    <DropdownMenu>
+      <DropdownMenuTrigger >
+        <Button
+          variant="ghost"
+          className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-blue-700 focus-visible:ring-2 focus-visible:ring-white transition-colors"
+        >
+          <Avatar className="h-8 w-8 border-2 border-blue-400">
+            <AvatarImage src={session?.user?.image ?? ""} alt={session?.user?.name ?? ""} />
+            <AvatarFallback className="bg-blue-900 text-white text-xs font-bold">
+              {userInitials}
+            </AvatarFallback>
+          </Avatar>
+          {/* Name shown on desktop only */}
+          <div className="text-left hidden sm:block md:block">
+            <p className="text-sm font-semibold leading-none text-white">
+              {session?.user?.name ?? "User"}
+            </p>
+            <p className="text-xs text-blue-200 mt-0.5">
+              {isAdmin ? "Admin" : "Student"}
+            </p>
+          </div>
+        </Button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" className="w-52 mt-1">
+        <div className="px-2 py-1.5 text-xs text-slate-500">
+          Signed in as{" "}
+          <span className="font-semibold text-slate-800">
+            {session?.user?.name ?? session?.user?.email}
+          </span>
+        </div>
+        <DropdownMenuSeparator />
+
+        {isAdmin && (
+          <DropdownMenuItem >
+            <Link href="/admin" className="flex items-center gap-2 cursor-pointer">
+              <LayoutDashboard className="h-4 w-4 text-yellow-500" />
+              <span>Admin Panel</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuItem >
+          <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
+            <User className="h-4 w-4" />
+            <span>My Profile</span>
+          </Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem >
+          <Link href="/exams" className="flex items-center gap-2 cursor-pointer">
+            <User className="h-4 w-4" />
+            <span>Exams</span>
+          </Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem >
+          <Link href="/my-tests" className="flex items-center gap-2 cursor-pointer">
+            <ClipboardList className="h-4 w-4" />
+            <span>My Attempts</span>
+          </Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="flex items-center gap-2 text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sign Out</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   return (
     <header className="sticky top-0 z-50 bg-[#1A56DB] text-white shadow-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo & Desktop Nav Links */}
+
+          {/* Logo & Desktop Nav */}
           <div className="flex items-center gap-6">
-            <Link href="/" className="text-xl font-extrabold font-heading tracking-tight hover:opacity-90 flex items-center gap-2">
+            <Link
+              href="/"
+              className="text-xl font-extrabold font-heading tracking-tight hover:opacity-90 flex items-center gap-2"
+            >
               <GraduationCap className="h-6 w-6" />
               <span>MockTestPro</span>
             </Link>
+
             
-            <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`transition-colors ${
-                    isActive(link.href) ? "text-white font-bold" : "text-blue-100 hover:text-white"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
           </div>
 
           {/* Desktop User Actions */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3">
             {isLoggedIn ? (
-              <>
-                {isAdmin && (
-                  <Link
-                    href="/admin"
-                    className="flex items-center gap-1.5 rounded-lg bg-yellow-500 hover:bg-yellow-600 px-3 py-1.5 text-xs font-bold text-slate-900 transition-colors border border-yellow-400"
-                  >
-                    <LayoutDashboard className="h-3.5 w-3.5" />
-                    <span>Admin Panel</span>
-                  </Link>
-                )}
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-2 rounded-lg bg-blue-700 hover:bg-blue-800 px-4 py-2 text-sm font-medium transition-colors border border-blue-500"
-                >
-                  <User className="h-4 w-4" />
-                  <span>My Profile</span>
-                </Link>
-                <button
-                  onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="flex items-center gap-1.5 rounded-lg bg-blue-800 hover:bg-blue-900 px-3 py-1.5 text-sm font-medium transition-colors border border-blue-700"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>Sign Out</span>
-                </button>
-              </>
+              <UserDropdown />
             ) : (
               status !== "loading" && (
                 <Link
@@ -97,86 +161,26 @@ export function Header() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center">
-            <button
-              onClick={toggleMobileMenu}
-              type="button"
-              className="inline-flex items-center justify-center rounded-md p-2 text-blue-100 hover:bg-blue-700 hover:text-white focus:outline-none transition-colors"
-              aria-controls="mobile-menu"
-              aria-expanded={mobileMenuOpen}
-            >
-              <span className="sr-only">Open main menu</span>
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
+          {/* Mobile: Avatar Dropdown + Hamburger */}
+          <div className="flex md:hidden items-center gap-1">
+            {isLoggedIn ? (
+              <UserDropdown />
+            ) : (
+              status !== "loading" && (
+                <Link
+                  href="/login"
+                  className="rounded-lg bg-white px-3 py-1.5 text-sm font-bold text-[#1A56DB] hover:bg-slate-100 transition-colors shadow-sm mr-1"
+                >
+                  Sign In
+                </Link>
+              )
+            )}
+
+           
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-[#1A56DB] border-t border-blue-700" id="mobile-menu">
-          <div className="space-y-1 px-2 pb-3 pt-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block rounded-md px-3 py-2 text-base font-medium transition-colors ${
-                  isActive(link.href) ? "bg-blue-800 text-white font-bold" : "text-blue-100 hover:bg-blue-700 hover:text-white"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-            
-            <div className="border-t border-blue-700 my-2 pt-2">
-              {isLoggedIn ? (
-                <div className="space-y-1">
-                  {isAdmin && (
-                    <Link
-                      href="/admin"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-2 rounded-md px-3 py-2 text-base font-medium text-yellow-300 hover:bg-blue-700 transition-colors"
-                    >
-                      <LayoutDashboard className="h-4 w-4" />
-                      <span>Admin Panel</span>
-                    </Link>
-                  )}
-                  <Link
-                    href="/profile"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-2 rounded-md px-3 py-2 text-base font-medium text-blue-100 hover:bg-blue-700 hover:text-white transition-colors"
-                  >
-                    <User className="h-4 w-4" />
-                    <span>My Profile</span>
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      signOut({ callbackUrl: "/login" });
-                    }}
-                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-base font-medium text-blue-100 hover:bg-blue-700 hover:text-white transition-colors"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              ) : (
-                status !== "loading" && (
-                  <Link
-                    href="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block rounded-md bg-white px-3 py-2 text-center text-base font-bold text-[#1A56DB] hover:bg-slate-100 transition-colors shadow-sm"
-                  >
-                    Sign In
-                  </Link>
-                )
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 }
