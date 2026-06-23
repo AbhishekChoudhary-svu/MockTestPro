@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
   User,
@@ -33,7 +31,6 @@ function getInitials(name?: string | null): string {
 
 export function Header() {
   const { data: session, status } = useSession();
-  const pathname = usePathname();
 
   const isAdmin = session?.user?.role === "admin";
   const isLoggedIn = status === "authenticated" && session?.user;
