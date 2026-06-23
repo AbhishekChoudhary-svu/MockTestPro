@@ -11,7 +11,6 @@ import {
   Award,
   BookOpen,
   ArrowRight,
-  Loader2,
   ChevronRight,
   TrendingUp,
   Percent,
@@ -138,15 +137,68 @@ export default function MyAttemptsPage() {
   };
 
   if (status === "loading" || loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F9FAFB]">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin text-[#1A56DB]" />
-          <p className="text-gray-500 font-medium font-sans">Retrieving your attempt logs...</p>
+  return (
+    <div className="min-h-screen bg-[#F9FAFB] font-sans pb-20">
+      <Header />
+
+      {/* Hero Skeleton */}
+      <div className="bg-gradient-to-b from-[#1A56DB] to-[#1245B2] py-10 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl text-center animate-pulse">
+          <div className="h-10 w-72 mx-auto rounded bg-white/20" />
+          <div className="h-4 w-96 mx-auto mt-4 rounded bg-white/10" />
         </div>
       </div>
-    );
-  }
+
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+        {/* Filter Skeleton */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
+          <div className="flex gap-2">
+            <div className="h-9 w-28 rounded-xl bg-slate-200 animate-pulse" />
+            <div className="h-9 w-32 rounded-xl bg-slate-200 animate-pulse" />
+            <div className="h-9 w-32 rounded-xl bg-slate-200 animate-pulse" />
+          </div>
+
+          <div className="h-5 w-32 rounded bg-slate-200 animate-pulse" />
+        </div>
+
+        {/* Attempt Cards Skeleton */}
+        {[1, 2, 3, 4].map((item) => (
+          <div
+            key={item}
+            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
+          >
+            <div className="animate-pulse">
+              {/* Badges */}
+              <div className="flex gap-2 mb-4">
+                <div className="h-5 w-20 rounded-full bg-slate-200" />
+                <div className="h-5 w-24 rounded-full bg-slate-200" />
+              </div>
+
+              {/* Title */}
+              <div className="h-6 w-2/3 rounded bg-slate-200 mb-4" />
+
+              {/* Meta */}
+              <div className="flex gap-4 mb-6">
+                <div className="h-4 w-28 rounded bg-slate-200" />
+                <div className="h-4 w-20 rounded bg-slate-200" />
+              </div>
+
+              {/* Bottom */}
+              <div className="flex justify-between items-center">
+                <div className="space-y-2 flex-1 mr-6">
+                  <div className="h-4 w-40 rounded bg-slate-200" />
+                  <div className="h-2 w-full rounded-full bg-slate-200" />
+                </div>
+
+                <div className="h-11 w-36 rounded-xl bg-slate-200" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </main>
+    </div>
+  );
+}
 
   const filtered = getFilteredAttempts();
   const inProgressCount = attempts.filter((a) => a.status === "in-progress").length;

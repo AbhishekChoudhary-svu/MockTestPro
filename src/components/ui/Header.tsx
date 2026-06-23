@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   GraduationCap,
   ClipboardList,
+  NotepadText,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -83,13 +84,13 @@ export function Header() {
         <DropdownMenuItem >
           <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
             <User className="h-4 w-4" />
-            <span>My Profile</span>
+            <span>Profile</span>
           </Link>
         </DropdownMenuItem>
 
         <DropdownMenuItem >
           <Link href="/exams" className="flex items-center gap-2 cursor-pointer">
-            <User className="h-4 w-4" />
+            <NotepadText className="h-4 w-4" />
             <span>Exams</span>
           </Link>
         </DropdownMenuItem>
@@ -97,7 +98,7 @@ export function Header() {
         <DropdownMenuItem >
           <Link href="/my-tests" className="flex items-center gap-2 cursor-pointer">
             <ClipboardList className="h-4 w-4" />
-            <span>My Attempts</span>
+            <span>Attempts</span>
           </Link>
         </DropdownMenuItem>
 

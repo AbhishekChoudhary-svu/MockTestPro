@@ -5,13 +5,7 @@ import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/ui/Header";
-import { 
-  BookOpen, 
-  Users, 
-  Layers, 
-  Loader2,
-  FileText
-} from "lucide-react";
+import { BookOpen, Users, Layers, FileText } from "lucide-react";
 
 interface ExamSection {
   name: string;
@@ -34,12 +28,11 @@ interface ExamData {
   attemptCount: number;
 }
 
-
 function CatalogContent() {
   useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+
   const initialCategory = searchParams.get("category") || "All";
   const [activeCategory, setActiveCategory] = useState(initialCategory);
   const [exams, setExams] = useState<ExamData[]>([]);
@@ -70,10 +63,11 @@ function CatalogContent() {
   const fetchExams = async () => {
     setLoading(true);
     try {
-      const url = activeCategory === "All" 
-        ? "/api/exams" 
-        : `/api/exams?category=${encodeURIComponent(activeCategory)}`;
-      
+      const url =
+        activeCategory === "All"
+          ? "/api/exams"
+          : `/api/exams?category=${encodeURIComponent(activeCategory)}`;
+
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -98,13 +92,25 @@ function CatalogContent() {
 
   // Helper to determine difficulty based on name or section counts (since we didn't store diff on exam schema directly)
   const getExamDifficulty = (exam: ExamData) => {
-    if (exam.category === "Banking" || exam.title.toLowerCase().includes("po")) {
+    if (
+      exam.category === "Banking" ||
+      exam.title.toLowerCase().includes("po")
+    ) {
       return { text: "Hard", color: "bg-red-50 text-red-700 border-red-200" };
     }
-    if (exam.title.toLowerCase().includes("tier 1") || exam.title.toLowerCase().includes("stage 1")) {
-      return { text: "Medium", color: "bg-amber-50 text-amber-700 border-amber-200" };
+    if (
+      exam.title.toLowerCase().includes("tier 1") ||
+      exam.title.toLowerCase().includes("stage 1")
+    ) {
+      return {
+        text: "Medium",
+        color: "bg-amber-50 text-amber-700 border-amber-200",
+      };
     }
-    return { text: "Easy", color: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+    return {
+      text: "Easy",
+      color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    };
   };
 
   const getCategoryBadgeColor = (category: string) => {
@@ -127,7 +133,10 @@ function CatalogContent() {
   };
 
   const getExamTotalMarks = (exam: ExamData) => {
-    return exam.sections.reduce((sum, s) => sum + (s.questionCount * s.markingScheme.correct), 0);
+    return exam.sections.reduce(
+      (sum, s) => sum + s.questionCount * s.markingScheme.correct,
+      0,
+    );
   };
 
   return (
@@ -141,7 +150,8 @@ function CatalogContent() {
           Mock Test Catalog
         </h1>
         <p className="mt-2 text-sm sm:text-base text-blue-100 max-w-xl mx-auto">
-          Choose from exam-accurate practice setups. Test your speed and section strategies under real test conditions.
+          Choose from exam-accurate practice setups. Test your speed and section
+          strategies under real test conditions.
         </p>
       </div>
 
@@ -168,9 +178,46 @@ function CatalogContent() {
 
         {/* Loading Spinner */}
         {loading ? (
-          <div className="flex h-64 flex-col items-center justify-center space-y-4">
-            <Loader2 className="h-10 w-10 animate-spin text-[#1A56DB]" />
-            <p className="text-slate-500 font-medium font-sans">Loading mock tests...</p>
+          <div className="space-y-8">
+            {/* Cards Skeleton */}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((item) => (
+                <div
+                  key={item}
+                  className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
+                >
+                  <div className="animate-pulse">
+                    {/* Badges */}
+                    <div className="flex justify-between mb-4">
+                      <div className="h-6 w-20 rounded-full bg-slate-200" />
+                      <div className="flex gap-2">
+                        <div className="h-6 w-12 rounded bg-slate-200" />
+                        <div className="h-6 w-14 rounded bg-slate-200" />
+                      </div>
+                    </div>
+
+                    {/* Title */}
+                    <div className="h-6 w-3/4 rounded bg-slate-200 mb-4" />
+
+                    {/* Sections */}
+                    <div className="h-4 w-full rounded bg-slate-200 mb-4" />
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-2 bg-slate-50 rounded-xl p-3 mb-6">
+                      <div className="h-12 rounded bg-slate-200" />
+                      <div className="h-12 rounded bg-slate-200" />
+                      <div className="h-12 rounded bg-slate-200" />
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex justify-between items-center border-t border-slate-100 pt-4">
+                      <div className="h-4 w-24 rounded bg-slate-200" />
+                      <div className="h-10 w-28 rounded-lg bg-slate-200" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : exams.length === 0 ? (
           /* Empty State */
@@ -178,9 +225,13 @@ function CatalogContent() {
             <div className="inline-flex rounded-full bg-slate-50 p-4 text-slate-400 mb-4">
               <BookOpen className="h-8 w-8" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800 font-heading">No Mock Tests Available</h3>
+            <h3 className="text-lg font-bold text-slate-800 font-heading">
+              No Mock Tests Available
+            </h3>
             <p className="text-slate-500 text-sm mt-1 max-w-sm mx-auto">
-              There are no published mock tests in the <strong>{activeCategory}</strong> category at the moment. Check back later!
+              There are no published mock tests in the{" "}
+              <strong>{activeCategory}</strong> category at the moment. Check
+              back later!
             </p>
           </div>
         ) : (
@@ -192,21 +243,25 @@ function CatalogContent() {
               const marks = getExamTotalMarks(exam);
 
               return (
-                <div 
-                  key={exam._id} 
+                <div
+                  key={exam._id}
                   className="bg-white rounded-2xl border border-slate-100 hover:border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 p-6 flex flex-col justify-between"
                 >
                   <div>
                     {/* Badge Row */}
                     <div className="flex items-center justify-between gap-2 mb-4">
-                      <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${getCategoryBadgeColor(exam.category)}`}>
+                      <span
+                        className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${getCategoryBadgeColor(exam.category)}`}
+                      >
                         {exam.category === "PSC" ? "State PSC" : exam.category}
                       </span>
                       <div className="flex gap-1.5 items-center">
                         <span className="rounded bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-extrabold uppercase">
                           FREE
                         </span>
-                        <span className={`rounded border px-2 py-0.5 text-[10px] font-bold ${diff.color}`}>
+                        <span
+                          className={`rounded border px-2 py-0.5 text-[10px] font-bold ${diff.color}`}
+                        >
                           {diff.text}
                         </span>
                       </div>
@@ -221,23 +276,36 @@ function CatalogContent() {
                     <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 font-medium">
                       <Layers className="h-3.5 w-3.5 text-slate-400" />
                       <span>
-                        {exam.sections.length} Sections: {exam.sections.map(s => s.name).join(", ")}
+                        {exam.sections.length} Sections:{" "}
+                        {exam.sections.map((s) => s.name).join(", ")}
                       </span>
                     </div>
 
                     {/* Stats Table */}
                     <div className="mt-4 grid grid-cols-3 gap-2 bg-slate-50 rounded-xl p-3 text-center border border-slate-100/50">
                       <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Questions</p>
-                        <p className="text-sm font-black text-slate-700 mt-0.5">{qCount}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Questions
+                        </p>
+                        <p className="text-sm font-black text-slate-700 mt-0.5">
+                          {qCount}
+                        </p>
                       </div>
                       <div className="border-x border-slate-200">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Marks</p>
-                        <p className="text-sm font-black text-slate-700 mt-0.5">{marks}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Marks
+                        </p>
+                        <p className="text-sm font-black text-slate-700 mt-0.5">
+                          {marks}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Duration</p>
-                        <p className="text-sm font-black text-slate-700 mt-0.5">{exam.totalDuration}m</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                          Duration
+                        </p>
+                        <p className="text-sm font-black text-slate-700 mt-0.5">
+                          {exam.totalDuration}m
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -268,13 +336,28 @@ function CatalogContent() {
 
 export default function ExamsPage() {
   return (
-    <Suspense 
+    <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#F9FAFB]">
-          <div className="flex flex-col items-center space-y-4">
-            <Loader2 className="h-12 w-12 animate-spin text-[#1A56DB]" />
-            <p className="text-gray-500 font-medium font-sans">Loading page...</p>
+        <div className="min-h-screen bg-[#F9FAFB]">
+          <Header />
+
+          <div className="bg-gradient-to-b from-[#1A56DB] to-[#1245B2] py-10">
+            <div className="mx-auto max-w-5xl text-center animate-pulse">
+              <div className="h-10 w-72 mx-auto rounded bg-white/20" />
+              <div className="h-4 w-96 mx-auto mt-4 rounded bg-white/10" />
+            </div>
           </div>
+
+          <main className="mx-auto max-w-7xl px-4 py-8">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((item) => (
+                <div
+                  key={item}
+                  className="h-80 rounded-2xl bg-white border border-slate-100 animate-pulse"
+                />
+              ))}
+            </div>
+          </main>
         </div>
       }
     >
