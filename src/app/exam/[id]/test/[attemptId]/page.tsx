@@ -16,7 +16,6 @@ import {
   Lock,
   Maximize,
   Grid,
-  Menu,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

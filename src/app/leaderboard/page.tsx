@@ -8,16 +8,12 @@ import {
   Search,
   BookOpen,
   MapPin,
-  TrendingUp,
   Award,
   ChevronUp,
   ChevronDown,
   Loader2,
   HelpCircle,
-  Medal,
-  Users,
 } from "lucide-react";
-import Link from "next/link";
 import { useSession } from "next-auth/react";
 
 interface LeaderboardItem {
@@ -109,13 +105,6 @@ export default function LeaderboardPage() {
   // Find current user's entry in leaderboard
   const currentUserEntry = leaderboard.find((item) => item.id === session?.user?.id);
 
-  // Helper for pod/medal rendering
-  const getMedalColor = (rank: number) => {
-    if (rank === 1) return "text-amber-400 fill-amber-400";
-    if (rank === 2) return "text-slate-300 fill-slate-300";
-    if (rank === 3) return "text-amber-600 fill-amber-600";
-    return "text-slate-400";
-  };
 
   const getRankBadge = (rank: number) => {
     if (rank === 1) return "bg-amber-100 border border-amber-300 text-amber-800";
@@ -182,7 +171,6 @@ export default function LeaderboardPage() {
                 {podiumList.map((player) => {
                   const isFirst = player.rank === 1;
                   const isSecond = player.rank === 2;
-                  const isThird = player.rank === 3;
 
                   return (
                     <div
