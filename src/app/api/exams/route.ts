@@ -11,8 +11,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const query: any = { status: "published" };
+    // Return both live and upcoming exams to the user catalog
+    const query: Record<string, unknown> = { status: { $in: ["live", "upcoming", "published"] } };
     if (category && category !== "All" && category !== "") {
       query.category = category;
     }

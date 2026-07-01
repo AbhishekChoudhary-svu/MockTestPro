@@ -2,6 +2,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IQuestion extends Document {
   question: string;
+  passage: string;            // shared passage for RC / Cloze / passage-based Qs
   optionA: string;
   optionB: string;
   optionC: string;
@@ -20,6 +21,7 @@ export interface IQuestion extends Document {
 const QuestionSchema: Schema<IQuestion> = new Schema(
   {
     question: { type: String, required: true },
+    passage: { type: String, default: '' },
     optionA: { type: String, required: true },
     optionB: { type: String, required: true },
     optionC: { type: String, required: true },

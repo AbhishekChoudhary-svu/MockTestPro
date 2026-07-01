@@ -152,73 +152,73 @@ export default function ProfilePage() {
   };
 
   if (status === "loading" || loading) {
-     return (
-    <div className="min-h-screen bg-[#F9FAFB] font-sans">
-      <Header />
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] font-sans">
+        <Header />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Welcome Skeleton */}
-        <div className="mb-8 animate-pulse">
-          <div className="h-8 w-72 rounded bg-slate-200" />
-          <div className="mt-3 h-4 w-96 rounded bg-slate-200" />
-        </div>
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          {/* Welcome Skeleton */}
+          <div className="mb-8 animate-pulse">
+            <div className="h-8 w-72 rounded bg-slate-200" />
+            <div className="mt-3 h-4 w-96 rounded bg-slate-200" />
+          </div>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {/* Profile Card Skeleton */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-            <div className="flex flex-col items-center">
-              <div className="h-24 w-24 rounded-full bg-slate-200 animate-pulse" />
-              <div className="mt-4 h-6 w-40 rounded bg-slate-200 animate-pulse" />
-              <div className="mt-2 h-4 w-52 rounded bg-slate-200 animate-pulse" />
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            {/* Profile Card Skeleton */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+              <div className="flex flex-col items-center">
+                <div className="h-24 w-24 rounded-full bg-slate-200 animate-pulse" />
+                <div className="mt-4 h-6 w-40 rounded bg-slate-200 animate-pulse" />
+                <div className="mt-2 h-4 w-52 rounded bg-slate-200 animate-pulse" />
+              </div>
+
+              <div className="mt-6 space-y-3 border-t border-slate-100 pt-4">
+                <div className="h-4 rounded bg-slate-200 animate-pulse" />
+                <div className="h-4 rounded bg-slate-200 animate-pulse" />
+                <div className="h-4 rounded bg-slate-200 animate-pulse" />
+              </div>
             </div>
 
-            <div className="mt-6 space-y-3 border-t border-slate-100 pt-4">
-              <div className="h-4 rounded bg-slate-200 animate-pulse" />
-              <div className="h-4 rounded bg-slate-200 animate-pulse" />
-              <div className="h-4 rounded bg-slate-200 animate-pulse" />
+            {/* Preferences Skeleton */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 lg:col-span-2">
+              <div className="h-6 w-48 rounded bg-slate-200 animate-pulse mb-6" />
+
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div>
+                  <div className="h-4 w-24 rounded bg-slate-200 animate-pulse mb-2" />
+                  <div className="h-10 rounded-lg bg-slate-200 animate-pulse" />
+                </div>
+
+                <div>
+                  <div className="h-4 w-24 rounded bg-slate-200 animate-pulse mb-2" />
+                  <div className="h-10 rounded-lg bg-slate-200 animate-pulse" />
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <div className="h-10 w-40 rounded-lg bg-slate-200 animate-pulse" />
+              </div>
             </div>
           </div>
 
-          {/* Preferences Skeleton */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 lg:col-span-2">
+          {/* Stats Skeleton */}
+          <div className="mt-8">
             <div className="h-6 w-48 rounded bg-slate-200 animate-pulse mb-6" />
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <div>
-                <div className="h-4 w-24 rounded bg-slate-200 animate-pulse mb-2" />
-                <div className="h-10 rounded-lg bg-slate-200 animate-pulse" />
-              </div>
-
-              <div>
-                <div className="h-4 w-24 rounded bg-slate-200 animate-pulse mb-2" />
-                <div className="h-10 rounded-lg bg-slate-200 animate-pulse" />
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <div className="h-10 w-40 rounded-lg bg-slate-200 animate-pulse" />
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((item) => (
+                <div
+                  key={item}
+                  className="bg-white rounded-xl shadow-sm border border-slate-100 p-6"
+                >
+                  <div className="h-16 rounded bg-slate-200 animate-pulse" />
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-
-        {/* Stats Skeleton */}
-        <div className="mt-8">
-          <div className="h-6 w-48 rounded bg-slate-200 animate-pulse mb-6" />
-
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {[1, 2, 3, 4].map((item) => (
-              <div
-                key={item}
-                className="bg-white rounded-xl shadow-sm border border-slate-100 p-6"
-              >
-                <div className="h-16 rounded bg-slate-200 animate-pulse" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </main>
-    </div>
-  );
+        </main>
+      </div>
+    );
   }
 
   if (status === "unauthenticated" || !profile) {

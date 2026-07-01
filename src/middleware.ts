@@ -26,6 +26,7 @@ export const config = {
     "/exam/:path*",
     "/my-tests",
     "/my-tests/:path*",
+    "/leaderboard",
     "/admin/:path*",
   ],
 };

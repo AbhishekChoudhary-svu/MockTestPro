@@ -39,7 +39,31 @@ export const authOptions: NextAuthOptions = {
           if (dbUser.isBanned) {
             return false;
           }
-          dbUser.lastLogin = new Date();
+          
+          // Daily Active Streak logic on Login
+          const today = new Date();
+          const lastLogin = dbUser.lastLogin ? new Date(dbUser.lastLogin) : null;
+          
+          if (lastLogin) {
+            const oneDay = 24 * 60 * 60 * 1000;
+            const d1 = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const d2 = new Date(lastLogin.getFullYear(), lastLogin.getMonth(), lastLogin.getDate());
+            const diffDays = Math.round((d1.getTime() - d2.getTime()) / oneDay);
+            
+            if (diffDays === 1) {
+              dbUser.streak = (dbUser.streak || 0) + 1;
+            } else if (diffDays > 1) {
+              dbUser.streak = 1;
+            } else if (diffDays === 0) {
+              if (!dbUser.streak) {
+                dbUser.streak = 1;
+              }
+            }
+          } else {
+            dbUser.streak = 1;
+          }
+
+          dbUser.lastLogin = today;
           await dbUser.save();
         }
         

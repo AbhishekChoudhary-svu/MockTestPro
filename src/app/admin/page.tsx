@@ -1,438 +1,320 @@
 "use client";
 
-import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
-  Sparkles,
-  Plus,
+  BookOpen,
   Database,
   Users,
-  BookOpen,
-  ArrowLeft,
+  Award,
+  Sparkles,
+  Plus,
+  Settings,
   ShieldCheck,
-  Trash2,
-  Tag,
-  BookMarked,
-  FolderOpen,
+  Clock,
+  ArrowRight,
+  TrendingUp,
 } from "lucide-react";
-import { useState, useEffect } from "react";
-import { useAlert } from "@/components/ui/AlertProvider";
+import { SkeletonStatCard, SkeletonBlock } from "@/components/ui/Skeleton";
+
+interface AttemptItem {
+  _id: string;
+  userId: {
+    name: string;
+    email: string;
+  } | null;
+  examId: {
+    title: string;
+    category: string;
+  } | null;
+  status: "in-progress" | "submitted";
+  startedAt: string;
+  result?: {
+    totalScore: number;
+    totalMarks: number;
+  };
+}
+
+interface StatsData {
+  totalExams: number;
+  totalQuestions: number;
+  totalUsers: number;
+  totalAttempts: number;
+  recentAttempts: AttemptItem[];
+}
 
 export default function AdminDashboard() {
   const { data: session } = useSession();
-  const { confirm, toast } = useAlert();
-  const [examCategories, setExamCategories] = useState<{ _id: string; name: string }[]>([]);
-  const [subjectCategories, setSubjectCategories] = useState<{ _id: string; name: string; examCategory: string }[]>([]);
-  const [newExamCatName, setNewExamCatName] = useState("");
-  const [newSubjCatName, setNewSubjCatName] = useState("");
-  const [selectedExamCatForSubj, setSelectedExamCatForSubj] = useState("");
-  const [loadingCats, setLoadingCats] = useState(true);
-
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadCategories();
+    fetchStats();
   }, []);
 
-  async function loadCategories() {
-    setLoadingCats(true);
+  async function fetchStats() {
     try {
-      const [res1, res2] = await Promise.all([
-        fetch("/api/admin/exam-categories"),
-        fetch("/api/admin/subject-categories")
-      ]);
-      if (res1.ok) {
-        const data = await res1.json();
-        setExamCategories(data);
-        if (data.length > 0) {
-          setSelectedExamCatForSubj(data[0].name);
-        }
-      }
-      if (res2.ok) {
-        const data = await res2.json();
-        setSubjectCategories(data);
+      setLoading(true);
+      const res = await fetch("/api/admin/dashboard-stats");
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
       }
     } catch (e) {
-      console.error("Error loading categories", e);
+      console.error("Error loading dashboard stats:", e);
     } finally {
-      setLoadingCats(false);
+      setLoading(false);
     }
   }
 
-  async function handleAddExamCategory(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newExamCatName.trim()) return;
-    try {
-      const res = await fetch("/api/admin/exam-categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newExamCatName }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to add category");
-      setExamCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
-      toast("success", `Exam category "${newExamCatName}" added successfully!`, "Category Added");
-      if (!selectedExamCatForSubj) setSelectedExamCatForSubj(data.name);
-      setNewExamCatName("");
-    } catch (err) {
-      toast("error", err instanceof Error ? err.message : "Error adding category", "Failed");
-    }
+  if (loading) {
+    return (
+      <div className="space-y-8 animate-pulse">
+        {/* Header skeleton */}
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+          <div className="space-y-2">
+            <SkeletonBlock className="h-8 w-56 rounded-xl" />
+            <SkeletonBlock className="h-4 w-80 rounded-lg" />
+          </div>
+          <SkeletonBlock className="h-8 w-48 rounded-lg" />
+        </div>
+        {/* Stat cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => <SkeletonStatCard key={i} />)}
+        </div>
+        {/* Two-column skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-white border border-slate-100 rounded-2xl p-5 flex gap-4">
+                <SkeletonBlock className="h-11 w-11 rounded-xl shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <SkeletonBlock className="h-4 w-32 rounded-md" />
+                  <SkeletonBlock className="h-3 w-full rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl overflow-hidden">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="p-5 border-b border-slate-100 flex items-center justify-between gap-4">
+                <div className="space-y-1.5 flex-1">
+                  <SkeletonBlock className="h-4 w-36 rounded-md" />
+                  <SkeletonBlock className="h-3 w-52 rounded" />
+                </div>
+                <SkeletonBlock className="h-8 w-24 rounded-lg shrink-0" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  async function handleDeleteExamCategory(id: string, name: string) {
-    const ok = await confirm({
-      title: "Delete Exam Category?",
-      message: `Delete "${name}"? Existing questions/exams will not be deleted but they will no longer match this category.`,
-      confirmLabel: "Yes, Delete",
-      cancelLabel: "Cancel",
-      type: "danger",
-    });
-    if (!ok) return;
-    try {
-      const res = await fetch(`/api/admin/exam-categories?id=${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to delete");
-      setExamCategories(prev => prev.filter(c => c._id !== id));
-      toast("success", `Exam category "${name}" deleted.`, "Deleted");
-      if (selectedExamCatForSubj === name) {
-        const remaining = examCategories.filter(c => c._id !== id);
-        setSelectedExamCatForSubj(remaining.length > 0 ? remaining[0].name : "");
-      }
-    } catch (err) {
-      toast("error", err instanceof Error ? err.message : "Error deleting category", "Error");
-    }
-  }
-
-  async function handleAddSubjectCategory(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newSubjCatName.trim() || !selectedExamCatForSubj) return;
-    try {
-      const res = await fetch("/api/admin/subject-categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newSubjCatName, examCategory: selectedExamCatForSubj }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to add subject");
-      setSubjectCategories(prev => [...prev, data].sort((a, b) => a.examCategory.localeCompare(b.examCategory) || a.name.localeCompare(b.name)));
-      toast("success", `Subject "${newSubjCatName}" added to "${selectedExamCatForSubj}".`, "Subject Added");
-      setNewSubjCatName("");
-    } catch (err) {
-      toast("error", err instanceof Error ? err.message : "Error adding subject", "Failed");
-    }
-  }
-
-  async function handleDeleteSubjectCategory(id: string, name: string, examCat: string) {
-    const ok = await confirm({
-      title: "Delete Subject?",
-      message: `Delete subject "${name}" under "${examCat}"? Questions tagged with this subject won't be affected.`,
-      confirmLabel: "Yes, Delete",
-      cancelLabel: "Cancel",
-      type: "warning",
-    });
-    if (!ok) return;
-    try {
-      const res = await fetch(`/api/admin/subject-categories?id=${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to delete");
-      setSubjectCategories(prev => prev.filter(s => s._id !== id));
-      toast("success", `Subject "${name}" deleted.`, "Deleted");
-    } catch (err) {
-      toast("error", err instanceof Error ? err.message : "Error deleting subject", "Error");
-    }
-  }
+  const cards = [
+    {
+      label: "Total Exams",
+      value: stats?.totalExams ?? 0,
+      icon: BookOpen,
+      color: "from-blue-500 to-indigo-600",
+      bg: "bg-blue-50 text-blue-600",
+    },
+    {
+      label: "Total Questions",
+      value: stats?.totalQuestions ?? 0,
+      icon: Database,
+      color: "from-emerald-500 to-teal-600",
+      bg: "bg-emerald-50 text-emerald-600",
+    },
+    {
+      label: "Total Registered Users",
+      value: stats?.totalUsers ?? 0,
+      icon: Users,
+      color: "from-purple-500 to-pink-600",
+      bg: "bg-purple-50 text-purple-600",
+    },
+    {
+      label: "Total Practice Attempts",
+      value: stats?.totalAttempts ?? 0,
+      icon: Award,
+      color: "from-amber-500 to-orange-600",
+      bg: "bg-amber-50 text-amber-600",
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] font-sans pb-16">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-[#1A56DB] text-white shadow-md">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-6 w-6 text-blue-200" />
-            <span className="text-lg font-extrabold font-heading tracking-tight">
-              MockTestPro <span className="text-blue-200 text-xs font-normal ml-1">Admin</span>
-            </span>
-          </div>
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 rounded-lg border border-blue-400 px-4 py-2 text-xs font-bold hover:bg-blue-700 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Student View
-          </Link>
-        </div>
-      </nav>
-
-      <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8 space-y-10 animate-fadeIn">
-        {/* Welcome Header */}
-        <div className="bg-gradient-to-r from-blue-700 to-indigo-800 text-white rounded-2xl p-6 sm:p-8 shadow-md">
-          <h1 className="text-xl sm:text-2xl font-black font-heading tracking-tight">
-            Welcome, {session?.user?.name || "Administrator"}!
+    <div className="space-y-8 animate-fadeIn">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-black font-heading text-slate-900 tracking-tight flex items-center gap-2">
+            <ShieldCheck className="h-6 w-6 text-[#1A56DB]" /> Admin Dashboard
           </h1>
-          <p className="text-blue-100 text-sm mt-1 max-w-lg">
-            Manage your question bank, edit exam configurations, parse content using AI, and view student attempt logs.
+          <p className="text-slate-500 text-sm mt-1">
+            Overview of MockTestPro systems, database size, and student engagement levels.
           </p>
         </div>
+        <div className="text-xs bg-slate-100 font-bold px-3 py-1.5 rounded-lg text-slate-600 border border-slate-200">
+          Signed in as {session?.user?.email}
+        </div>
+      </div>
 
-        {/* Dashboard Quick stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {[
-            {
-              icon: <Database className="h-6 w-6 text-[#1A56DB]" />,
-              label: "Question Bank Status",
-              value: "Ready",
-              color: "bg-blue-50 border-blue-100",
-            },
-            {
-              icon: <BookOpen className="h-6 w-6 text-emerald-600" />,
-              label: "Exam Content Templates",
-              value: "Active",
-              color: "bg-emerald-50 border-emerald-100",
-            },
-            {
-              icon: <Users className="h-6 w-6 text-purple-600" />,
-              label: "Authorized Role",
-              value: "Admin Only",
-              color: "bg-purple-50 border-purple-100",
-            },
-          ].map((stat, i) => (
+      {/* Grid Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {cards.map((card, idx) => {
+          const Icon = card.icon;
+          return (
             <div
-              key={i}
-              className={`border ${stat.color} rounded-2xl p-5 flex items-center gap-4 bg-white shadow-sm`}
+              key={idx}
+              className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200"
             >
-              <div className="rounded-xl p-3 bg-white shadow-sm border border-slate-100">{stat.icon}</div>
-              <div>
-                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                  {stat.label}
-                </p>
-                <p className="text-base font-black text-slate-800 mt-0.5">{stat.value}</p>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  {card.label}
+                </span>
+                <div className={`p-2.5 rounded-xl ${card.bg}`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <span className="text-3xl font-black text-slate-800 font-heading">
+                  {card.value}
+                </span>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
+      </div>
 
-        {/* Main Content Areas */}
-        <div className="space-y-4">
-          <h2 className="text-base font-bold text-slate-800 font-heading">Question Bank Tools</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Card 1: AI Question Import */}
-            <Link
-              href="/admin/questions/import"
-              className="group bg-white border border-slate-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-blue-100 transition-all flex flex-col justify-between space-y-4 cursor-pointer"
-            >
-              <div className="space-y-2">
-                <div className="p-3 bg-blue-50 rounded-xl text-[#1A56DB] w-fit group-hover:bg-blue-100 transition-colors">
-                  <Sparkles className="h-6 w-6" />
-                </div>
-                <h3 className="text-base font-bold text-slate-800 group-hover:text-[#1A56DB] transition-colors">
-                  AI-Powered Bulk Import
-                </h3>
-                <p className="text-slate-500 text-xs leading-relaxed">
-                  Paste raw text from files, PDFs, or AI outputs, and let Gemini/OpenAI parse and format them into structured exam questions with answers and explanations automatically.
-                </p>
-              </div>
-              <div className="text-xs font-bold text-[#1A56DB] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                Launch Import Wizard &rarr;
-              </div>
-            </Link>
-
-            {/* Card 2: Manual Question Entry */}
-            <Link
-              href="/admin/questions/add"
-              className="group bg-white border border-slate-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-blue-100 transition-all flex flex-col justify-between space-y-4 cursor-pointer"
-            >
-              <div className="space-y-2">
-                <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600 w-fit group-hover:bg-emerald-100 transition-colors">
-                  <Plus className="h-6 w-6" />
-                </div>
-                <h3 className="text-base font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">
-                  Manual Question Entry
-                </h3>
-                <p className="text-slate-500 text-xs leading-relaxed">
-                  Add single questions manually with fields for options, correct answer keys, topics, difficulty tags, and detailed markdown explanations. Includes real-time student view layout preview.
-                </p>
-              </div>
-              <div className="text-xs font-bold text-emerald-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                Open Question Builder &rarr;
-              </div>
-            </Link>
-          </div>
-        </div>
-
-        {/* Exam Configuration Management */}
-        <div className="space-y-4">
-          <h2 className="text-base font-bold text-slate-800 font-heading">Mock Test Templates</h2>
-          <div className="grid grid-cols-1 gap-6">
-            <Link
-              href="/admin/exams"
-              className="group bg-white border border-slate-100 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-blue-100 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 cursor-pointer"
-            >
-              <div className="flex gap-4 items-start">
-                <div className="p-3 bg-blue-50 rounded-xl text-[#1A56DB] group-hover:bg-blue-100 transition-colors shrink-0">
-                  <BookOpen className="h-6 w-6" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-base font-bold text-slate-800 group-hover:text-[#1A56DB] transition-colors">
-                    Mock Test Template Builder
-                  </h3>
-                  <p className="text-slate-500 text-xs leading-relaxed max-w-2xl">
-                    Configure structural parameters, specify section timers, assign questions manually or auto-fill them randomly, set marking schemes, and publish mock tests to the live student catalog.
-                  </p>
-                </div>
-              </div>
-              <div className="text-xs font-bold text-[#1A56DB] flex items-center gap-1 group-hover:translate-x-1 transition-transform shrink-0">
-                Manage Exams &rarr;
-              </div>
-            </Link>
-          </div>
-        </div>
-
-        {/* Categories & Subjects Management */}
-        <div className="space-y-4">
+      {/* Main Section split: Quick actions & Recent attempts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column: Quick Actions */}
+        <div className="space-y-6 lg:col-span-1">
           <h2 className="text-base font-bold text-slate-800 font-heading flex items-center gap-2">
-            <Tag className="h-5 w-5 text-[#1A56DB]" /> Manage Categories & Subjects
+            <TrendingUp className="h-4.5 w-4.5 text-[#1A56DB]" /> Quick Task Panels
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Exam Categories */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                  <FolderOpen className="h-5 w-5 text-[#1A56DB]" />
-                  <h3 className="text-sm font-bold text-slate-800">Exam Categories</h3>
-                </div>
 
-
-
-                <form onSubmit={handleAddExamCategory} className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="New category, e.g. NEET"
-                    value={newExamCatName}
-                    onChange={(e) => setNewExamCatName(e.target.value)}
-                    className="flex-1 text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  />
-                  <button
-                    type="submit"
-                    className="flex items-center gap-1 bg-[#1A56DB] hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition-colors"
-                  >
-                    <Plus className="h-3 w-3" /> Add
-                  </button>
-                </form>
-
-                {loadingCats ? (
-                  <p className="text-xs text-slate-400">Loading categories...</p>
-                ) : (
-                  <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
-                    {examCategories.length === 0 ? (
-                      <p className="text-xs text-slate-400">No categories found.</p>
-                    ) : (
-                      examCategories.map((cat) => (
-                        <div
-                          key={cat._id}
-                          className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs text-slate-700 font-medium hover:bg-slate-100 transition-colors"
-                        >
-                          <span className="truncate">{cat.name}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteExamCategory(cat._id, cat.name)}
-                            className="p-1 text-slate-400 hover:text-red-600 transition-colors"
-                            title={`Delete ${cat.name}`}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
+          <div className="grid grid-cols-1 gap-4">
+            {/* Create Exam Card */}
+            <Link
+              href="/admin/exams/create"
+              className="group bg-white border border-slate-100 hover:border-blue-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex gap-4"
+            >
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-100 transition-colors shrink-0">
+                <Plus className="h-5 w-5" />
               </div>
-            </div>
-
-            {/* Subject Categories */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                  <BookMarked className="h-5 w-5 text-emerald-600" />
-                  <h3 className="text-sm font-bold text-slate-800">Subject Categories</h3>
-                </div>
-
-
-
-                <div className="space-y-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
-                      Select Exam Category
-                    </label>
-                    <select
-                      value={selectedExamCatForSubj}
-                      onChange={(e) => setSelectedExamCatForSubj(e.target.value)}
-                      className="text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 bg-white"
-                    >
-                      {examCategories.length === 0 ? (
-                        <option value="">— No Categories Available —</option>
-                      ) : (
-                        examCategories.map((c) => (
-                          <option key={c._id} value={c.name}>
-                            {c.name}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  </div>
-
-                  <form onSubmit={handleAddSubjectCategory} className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="New subject, e.g. Mathematics"
-                      value={newSubjCatName}
-                      onChange={(e) => setNewSubjCatName(e.target.value)}
-                      disabled={!selectedExamCatForSubj}
-                      className="flex-1 text-xs px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!selectedExamCatForSubj}
-                      className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
-                    >
-                      <Plus className="h-3 w-3" /> Add
-                    </button>
-                  </form>
-                </div>
-
-                {loadingCats ? (
-                  <p className="text-xs text-slate-400">Loading subjects...</p>
-                ) : (
-                  <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
-                    {!selectedExamCatForSubj ? (
-                      <p className="text-xs text-slate-400">Please select or add an exam category first.</p>
-                    ) : subjectCategories.filter((s) => s.examCategory.toLowerCase() === selectedExamCatForSubj.toLowerCase()).length === 0 ? (
-                      <p className="text-xs text-slate-400">No subjects defined under &quot;{selectedExamCatForSubj}&quot;.</p>
-                    ) : (
-                      subjectCategories
-                        .filter((s) => s.examCategory.toLowerCase() === selectedExamCatForSubj.toLowerCase())
-                        .map((subj) => (
-                          <div
-                            key={subj._id}
-                            className="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100 text-xs text-slate-700 font-medium hover:bg-slate-100 transition-colors"
-                          >
-                            <span className="truncate">{subj.name}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteSubjectCategory(subj._id, subj.name, subj.examCategory)}
-                              className="p-1 text-slate-400 hover:text-red-600 transition-colors"
-                              title={`Delete ${subj.name}`}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        ))
-                    )}
-                  </div>
-                )}
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-slate-800 group-hover:text-[#1A56DB] transition-colors">
+                  Create Mock Test
+                </h3>
+                <p className="text-slate-400 text-[11px] leading-normal">
+                  Design new tests, define sections, and assign questions.
+                </p>
               </div>
-            </div>
+            </Link>
+
+            {/* AI Bulk Import Card */}
+            <Link
+              href="/admin/questions?tab=import"
+              className="group bg-white border border-slate-100 hover:border-blue-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex gap-4"
+            >
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-100 transition-colors shrink-0">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">
+                  AI Question Import
+                </h3>
+                <p className="text-slate-400 text-[11px] leading-normal">
+                  Extract formatted MCQs from uploaded files using AI models.
+                </p>
+              </div>
+            </Link>
+
+            {/* Cleanup & Settings Card */}
+            <Link
+              href="/admin/settings"
+              className="group bg-white border border-slate-100 hover:border-blue-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 flex gap-4"
+            >
+              <div className="p-3 bg-purple-50 text-purple-600 rounded-xl group-hover:bg-purple-100 transition-colors shrink-0">
+                <Settings className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-slate-800 group-hover:text-purple-600 transition-colors">
+                  System Settings
+                </h3>
+                <p className="text-slate-400 text-[11px] leading-normal">
+                  Wipe test logs, audit data, and manage administrative settings.
+                </p>
+              </div>
+            </Link>
           </div>
         </div>
-      </main>
+
+        {/* Right Column: Recent Activity Feed */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-base font-bold text-slate-800 font-heading flex items-center gap-2">
+              <Clock className="h-4.5 w-4.5 text-[#1A56DB]" /> Recent Student Practice
+            </h2>
+            <Link
+              href="/admin/settings"
+              className="text-xs font-bold text-[#1A56DB] hover:underline flex items-center gap-0.5"
+            >
+              View Analytics <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+
+          <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+            {!stats?.recentAttempts || stats.recentAttempts.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 text-xs font-medium">
+                No mock test attempts recorded yet.
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {stats.recentAttempts.map((item) => (
+                  <div
+                    key={item._id}
+                    className="p-5 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="space-y-1 truncate">
+                      <p className="text-xs font-bold text-slate-800 truncate">
+                        {item.userId?.name ?? "Guest User"}
+                      </p>
+                      <p className="text-[10px] font-medium text-slate-400 truncate">
+                        Attempted: <span className="text-slate-600 font-semibold">{item.examId?.title ?? "Deleted Test"}</span> ({item.examId?.category})
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="text-right">
+                        <p className="text-[10px] font-bold text-slate-400">
+                          {new Date(item.startedAt).toLocaleDateString("en-IN", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                        {item.status === "submitted" && item.result ? (
+                          <span className="inline-flex items-center gap-0.5 rounded bg-emerald-50 text-emerald-800 px-2 py-0.5 text-[9px] font-bold uppercase mt-1">
+                            Score: {item.result.totalScore}/{item.result.totalMarks}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5 rounded bg-amber-50 text-amber-800 px-2 py-0.5 text-[9px] font-bold uppercase mt-1">
+                            In Progress
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

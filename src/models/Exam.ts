@@ -19,7 +19,7 @@ export interface IExam extends Document {
   totalDuration: number; // in minutes
   sections: ISection[];
   instructions: string;
-  status: 'draft' | 'published';
+  status: 'draft' | 'upcoming' | 'live';
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   attemptCount: number;
@@ -43,7 +43,7 @@ const ExamSchema: Schema<IExam> = new Schema(
     totalDuration: { type: Number, required: true }, // in minutes
     sections: [SectionSchema],
     instructions: { type: String, default: '' },
-    status: { type: String, enum: ['draft', 'published'], default: 'draft', index: true },
+    status: { type: String, enum: ['draft', 'upcoming', 'live'], default: 'draft', index: true },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     attemptCount: { type: Number, default: 0 },
   },

@@ -136,69 +136,7 @@ export default function MyAttemptsPage() {
     return attempt.examId.sections.reduce((sum, s) => sum + s.questionCount, 0);
   };
 
-  if (status === "loading" || loading) {
-  return (
-    <div className="min-h-screen bg-[#F9FAFB] font-sans pb-20">
-      <Header />
-
-      {/* Hero Skeleton */}
-      <div className="bg-gradient-to-b from-[#1A56DB] to-[#1245B2] py-10 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl text-center animate-pulse">
-          <div className="h-10 w-72 mx-auto rounded bg-white/20" />
-          <div className="h-4 w-96 mx-auto mt-4 rounded bg-white/10" />
-        </div>
-      </div>
-
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
-        {/* Filter Skeleton */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
-          <div className="flex gap-2">
-            <div className="h-9 w-28 rounded-xl bg-slate-200 animate-pulse" />
-            <div className="h-9 w-32 rounded-xl bg-slate-200 animate-pulse" />
-            <div className="h-9 w-32 rounded-xl bg-slate-200 animate-pulse" />
-          </div>
-
-          <div className="h-5 w-32 rounded bg-slate-200 animate-pulse" />
-        </div>
-
-        {/* Attempt Cards Skeleton */}
-        {[1, 2, 3, 4].map((item) => (
-          <div
-            key={item}
-            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
-          >
-            <div className="animate-pulse">
-              {/* Badges */}
-              <div className="flex gap-2 mb-4">
-                <div className="h-5 w-20 rounded-full bg-slate-200" />
-                <div className="h-5 w-24 rounded-full bg-slate-200" />
-              </div>
-
-              {/* Title */}
-              <div className="h-6 w-2/3 rounded bg-slate-200 mb-4" />
-
-              {/* Meta */}
-              <div className="flex gap-4 mb-6">
-                <div className="h-4 w-28 rounded bg-slate-200" />
-                <div className="h-4 w-20 rounded bg-slate-200" />
-              </div>
-
-              {/* Bottom */}
-              <div className="flex justify-between items-center">
-                <div className="space-y-2 flex-1 mr-6">
-                  <div className="h-4 w-40 rounded bg-slate-200" />
-                  <div className="h-2 w-full rounded-full bg-slate-200" />
-                </div>
-
-                <div className="h-11 w-36 rounded-xl bg-slate-200" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </main>
-    </div>
-  );
-}
+  
 
   const filtered = getFilteredAttempts();
   const inProgressCount = attempts.filter((a) => a.status === "in-progress").length;
@@ -259,7 +197,35 @@ export default function MyAttemptsPage() {
         </div>
 
         {/* Attempts Grid / List */}
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3, 4].map((item) => (
+              <div
+                key={item}
+                className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6"
+              >
+                <div className="animate-pulse">
+                  <div className="flex gap-2 mb-4">
+                    <div className="h-5 w-20 rounded-full bg-slate-200" />
+                    <div className="h-5 w-24 rounded-full bg-slate-200" />
+                  </div>
+                  <div className="h-6 w-2/3 rounded bg-slate-200 mb-4" />
+                  <div className="flex gap-4 mb-6">
+                    <div className="h-4 w-28 rounded bg-slate-200" />
+                    <div className="h-4 w-20 rounded bg-slate-200" />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="space-y-2 flex-1 mr-6">
+                      <div className="h-4 w-40 rounded bg-slate-200" />
+                      <div className="h-2 w-full rounded-full bg-slate-200" />
+                    </div>
+                    <div className="h-11 w-36 rounded-xl bg-slate-200" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm text-center py-16 px-4">
             <div className="inline-flex rounded-full bg-slate-50 p-4 text-slate-400 mb-4">
               <BookOpen className="h-8 w-8" />

@@ -90,13 +90,19 @@ export async function POST(req: NextRequest) {
       questionCount: Array.isArray(sec.questions) ? sec.questions.length : 0,
     }));
 
+    let examStatus = status || "draft";
+    if (examStatus === "published") examStatus = "live";
+    if (!["draft", "upcoming", "live"].includes(examStatus)) {
+      return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
+    }
+
     const newExam = await Exam.create({
       title: title.trim(),
       category: category.trim(),
       totalDuration,
       sections: normalizedSections,
       instructions: instructions || "",
-      status: status || "draft",
+      status: examStatus,
       createdBy: dbUser._id,
       attemptCount: 0,
     });

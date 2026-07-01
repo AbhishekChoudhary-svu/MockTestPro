@@ -7,6 +7,37 @@ import { dbConnect } from "@/lib/mongoose";
 import User from "@/models/User";
 import Exam from "@/models/Exam";
 
+// GET: Fetch full exam details with all questions populated (admin preview)
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email || session.user.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    await dbConnect();
+
+    const dbUser = await User.findOne({ email: session.user.email });
+    if (!dbUser || dbUser.role !== "admin") {
+      return NextResponse.json({ error: "Admin account not found" }, { status: 403 });
+    }
+
+    const exam = await Exam.findById(params.id).populate("sections.questions");
+    if (!exam) {
+      return NextResponse.json({ error: "Exam not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(exam);
+  } catch (error) {
+    console.error("Error fetching exam detail:", error);
+    const msg = error instanceof Error ? error.message : "Internal Server Error";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
 // PATCH: Update exam configurations or status
 export async function PATCH(
   req: NextRequest,
@@ -68,10 +99,12 @@ export async function PATCH(
     }
     if (body.instructions !== undefined) exam.instructions = String(body.instructions);
     if (body.status !== undefined) {
-      if (!["draft", "published"].includes(body.status)) {
+      let statusVal = body.status;
+      if (statusVal === "published") statusVal = "live";
+      if (!["draft", "upcoming", "live"].includes(statusVal)) {
         return NextResponse.json({ error: "Invalid status" }, { status: 400 });
       }
-      exam.status = body.status;
+      exam.status = statusVal as "draft" | "upcoming" | "live";
     }
 
     await exam.save();

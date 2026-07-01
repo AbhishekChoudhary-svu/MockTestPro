@@ -10,6 +10,7 @@ import Exam from "@/models/Exam";
 
 interface RawQuestionInput {
   question?: string;
+  passage?: string; // shared passage
   optionA?: string;
   option1?: string;
   optionB?: string;
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
 
       return {
         question: String(q.question || "").trim(),
+        passage: String(q.passage || "").trim(), // shared passage normalization
         optionA: String(q.optionA || q.option1 || "").trim(),
         optionB: String(q.optionB || q.option2 || "").trim(),
         optionC: String(q.optionC || q.option3 || "").trim(),

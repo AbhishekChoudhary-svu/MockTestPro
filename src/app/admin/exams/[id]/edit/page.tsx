@@ -17,6 +17,7 @@ import {
   Save,
   AlertTriangle,
   Tag,
+  Clock,
 } from "lucide-react";
 import { useAlert } from "@/components/ui/AlertProvider";
 
@@ -368,12 +369,12 @@ export default function EditExamWizard() {
   };
 
   // --- Step 4 Actions (Submit layout) ---
-  const handleSaveExam = async (publishStatus: "draft" | "published") => {
+  const handleSaveExam = async (publishStatus: "draft" | "upcoming" | "live") => {
     setErrorMsg("");
     setSuccessMsg("");
 
-    // Validate that questions are filled for all sections (only for published status)
-    if (publishStatus === "published") {
+    // Validate that questions are filled for all sections (only for live or upcoming status)
+    if (publishStatus === "live" || publishStatus === "upcoming") {
       for (let i = 0; i < sections.length; i++) {
         const sec = sections[i];
         if (sec.questions.length === 0) {
@@ -953,22 +954,30 @@ export default function EditExamWizard() {
               >
                 Back
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => handleSaveExam("draft")}
                   disabled={saving}
-                  className="px-5 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
+                  className="px-4 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Save as Draft
                 </button>
                 <button
-                  onClick={() => handleSaveExam("published")}
+                  onClick={() => handleSaveExam("upcoming")}
                   disabled={saving}
-                  className="px-6 py-3 bg-[#1A56DB] hover:bg-blue-700 disabled:bg-blue-300 text-white text-xs font-black rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                  className="px-4 py-3 border border-amber-200 bg-amber-50 hover:bg-amber-100/50 text-amber-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
+                  Set as Upcoming
+                </button>
+                <button
+                  onClick={() => handleSaveExam("live")}
+                  disabled={saving}
+                  className="px-5 py-3 bg-[#1A56DB] hover:bg-blue-700 disabled:bg-blue-300 text-white text-xs font-black rounded-xl shadow-sm transition-all flex items-center gap-1.5"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                  Update Exam
+                  Update Live
                 </button>
               </div>
             </div>

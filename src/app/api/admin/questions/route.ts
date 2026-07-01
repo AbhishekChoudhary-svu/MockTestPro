@@ -134,3 +134,108 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
+
+// DELETE: Delete a question or bulk-delete multiple questions
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email || session.user.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    await dbConnect();
+
+    // Verify admin
+    const adminUser = await User.findOne({ email: session.user.email });
+    if (!adminUser || adminUser.role !== "admin") {
+      return NextResponse.json({ error: "Admin account not found" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (id) {
+      const deleted = await Question.findByIdAndDelete(id);
+      if (!deleted) {
+        return NextResponse.json({ error: "Question not found" }, { status: 404 });
+      }
+      return NextResponse.json({ message: "Question deleted successfully" });
+    }
+
+    // Try to parse JSON body for bulk delete
+    try {
+      const body = await req.json();
+      const { ids } = body;
+      if (Array.isArray(ids) && ids.length > 0) {
+        await Question.deleteMany({ _id: { $in: ids } });
+        return NextResponse.json({ message: `${ids.length} questions deleted successfully` });
+      }
+    } catch {
+      // Body parsing failed or no ids list provided
+    }
+
+    return NextResponse.json({ error: "Missing question ID or IDs list" }, { status: 400 });
+  } catch (error) {
+    console.error("Error deleting question:", error);
+    const msg = error instanceof Error ? error.message : "Internal Server Error";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+// PATCH: Update a question by ?id=<questionId>
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email || session.user.role !== "admin") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    await dbConnect();
+
+    const adminUser = await User.findOne({ email: session.user.email });
+    if (!adminUser || adminUser.role !== "admin") {
+      return NextResponse.json({ error: "Admin account not found" }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "Question ID is required" }, { status: 400 });
+    }
+
+    const body = await req.json();
+
+    // Only allow safe updatable fields
+    const allowedFields = [
+      "question", "optionA", "optionB", "optionC", "optionD",
+      "correctOption", "explanation", "subject", "topic", "difficulty", "passage",
+    ];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {};
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        updateData[field] = body[field];
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+    }
+
+    const updated = await Question.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) {
+      return NextResponse.json({ error: "Question not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Question updated successfully", question: updated });
+  } catch (error) {
+    console.error("Error updating question:", error);
+    const msg = error instanceof Error ? error.message : "Internal Server Error";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}

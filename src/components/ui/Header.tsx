@@ -9,6 +9,7 @@ import {
   GraduationCap,
   ClipboardList,
   NotepadText,
+  Trophy,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -99,6 +100,13 @@ export function Header() {
           <Link href="/my-tests" className="flex items-center gap-2 cursor-pointer">
             <ClipboardList className="h-4 w-4" />
             <span>Attempts</span>
+          </Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem >
+          <Link href="/leaderboard" className="flex items-center gap-2 cursor-pointer">
+            <Trophy className="h-4 w-4 text-amber-500" />
+            <span>Leaderboard</span>
           </Link>
         </DropdownMenuItem>
 

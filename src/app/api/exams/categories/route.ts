@@ -5,23 +5,14 @@ import { dbConnect } from "@/lib/mongoose";
 import Exam from "@/models/Exam";
 import ExamCategory from "@/models/ExamCategory";
 
-// GET: Return distinct exam categories from published exams
+// GET: Return distinct exam categories from active (live/upcoming) exams
 export async function GET() {
   try {
     await dbConnect();
-    const categories = await Exam.distinct("category", { status: "published" });
-    if (categories.length === 0) {
-      const dbCats = await ExamCategory.find().sort({ name: 1 });
-      return NextResponse.json({ categories: dbCats.map((c) => c.name) });
-    }
+    const categories = await Exam.distinct("category", { status: { $in: ["live", "upcoming"] } });
     return NextResponse.json({ categories: categories.sort() });
   } catch (error) {
-    console.error("Error fetching exam categories:", error);
-    try {
-      const dbCats = await ExamCategory.find().sort({ name: 1 });
-      return NextResponse.json({ categories: dbCats.map((c) => c.name) });
-    } catch {
-      return NextResponse.json({ categories: ["SSC", "Railway", "Banking", "PSC"] });
-    }
+    console.error("Error fetching active exam categories:", error);
+    return NextResponse.json({ categories: [] });
   }
 }

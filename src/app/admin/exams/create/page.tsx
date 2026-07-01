@@ -17,6 +17,7 @@ import {
   Save,
   AlertTriangle,
   Tag,
+  Clock,
 } from "lucide-react";
 import { useAlert } from "@/components/ui/AlertProvider";
 
@@ -319,11 +320,11 @@ export default function CreateExamWizard() {
   };
 
   // --- Step 4 Actions (Submit layout) ---
-  const handleSaveExam = async (publishStatus: "draft" | "published") => {
+  const handleSaveExam = async (publishStatus: "draft" | "upcoming" | "live") => {
     setErrorMsg("");
     setSuccessMsg("");
 
-    if (publishStatus === "published") {
+    if (publishStatus === "live" || publishStatus === "upcoming") {
       for (let i = 0; i < sections.length; i++) {
         const sec = sections[i];
         if (sec.questions.length === 0) {
@@ -374,26 +375,27 @@ export default function CreateExamWizard() {
   const resolvedCategory = customCategory.trim() || category;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] font-sans pb-20">
+    <div className="min-h-screen bg-[#F9FAFB] font-sans pb-24 sm:pb-20">
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-[#1A56DB] text-white shadow-md">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 flex h-14 sm:h-16 items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Link
               href="/admin/exams"
-              className="p-2 hover:bg-blue-700 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 hover:bg-blue-700 rounded-lg transition-colors shrink-0"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
             </Link>
-            <span className="text-lg font-extrabold font-heading tracking-tight">
-              Create Mock Exam Template
+            <span className="text-xs sm:text-lg font-extrabold font-heading tracking-tight truncate">
+              <span className="hidden sm:inline">Create Mock Exam Template</span>
+              <span className="sm:hidden">Create Exam</span>
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {[1, 2, 3, 4].map((s) => (
               <div
                 key={s}
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black border transition-all ${
+                className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-black border transition-all ${
                   step === s
                     ? "bg-white text-[#1A56DB] border-white font-extrabold"
                     : step > s
@@ -408,16 +410,16 @@ export default function CreateExamWizard() {
         </div>
       </nav>
 
-      <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8 space-y-8 animate-fadeIn">
+      <main className="mx-auto max-w-4xl px-3 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-6 sm:space-y-8 animate-fadeIn">
         {errorMsg && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl p-4 flex items-center gap-2">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl p-3 sm:p-4 flex items-start sm:items-center gap-2">
             <AlertTriangle className="h-5 w-5 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl p-4 flex items-center gap-2">
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl p-3 sm:p-4 flex items-start sm:items-center gap-2">
             <CheckCircle className="h-5 w-5 shrink-0" />
             <span>{successMsg}</span>
           </div>
@@ -425,7 +427,7 @@ export default function CreateExamWizard() {
 
         {/* STEP 1: Basic details */}
         {step === 1 && (
-          <div className="bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="bg-white border border-slate-100 rounded-2xl p-4 sm:p-8 shadow-sm space-y-6">
             <div>
               <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-400">
                 Step 1: General Information
@@ -452,7 +454,7 @@ export default function CreateExamWizard() {
               </div>
 
               {/* Category — dynamic from DB + custom entry */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 ">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-1">
                     <Tag className="h-3 w-3" /> Exam Category
@@ -486,7 +488,7 @@ export default function CreateExamWizard() {
                         )}
                         <option value="">— Or type a new one below —</option>
                       </select>
-                      
+
                       {resolvedCategory && (
                         <p className="text-[10px] text-emerald-700 font-bold mt-0.5">
                           ✓ Using: <span className="uppercase">{resolvedCategory}</span>
@@ -524,11 +526,11 @@ export default function CreateExamWizard() {
               </div>
             </div>
 
-            <div className="flex justify-between pt-4">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 pt-4">
               <button
                 onClick={() => handleSaveExam("draft")}
                 disabled={saving}
-                className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
+                className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 w-full sm:w-auto"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Save Draft
@@ -546,7 +548,7 @@ export default function CreateExamWizard() {
                   setErrorMsg("");
                   setStep(2);
                 }}
-                className="px-6 py-3 bg-[#1A56DB] hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                className="px-6 py-3 bg-[#1A56DB] hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto"
               >
                 Configure Sections
                 <ArrowRight className="h-4 w-4" />
@@ -557,8 +559,8 @@ export default function CreateExamWizard() {
 
         {/* STEP 2: Configure Sections */}
         {step === 2 && (
-          <div className="bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
-            <div className="flex items-center justify-between gap-4">
+          <div className="bg-white border border-slate-100 rounded-2xl p-4 sm:p-8 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-400">
                   Step 2: Define Sections Structure
@@ -569,7 +571,7 @@ export default function CreateExamWizard() {
               </div>
               <button
                 onClick={handleAddSection}
-                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[#1A56DB] rounded-xl text-xs font-bold transition-all flex items-center gap-1"
+                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[#1A56DB] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 w-full sm:w-auto shrink-0"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add Section
@@ -577,7 +579,7 @@ export default function CreateExamWizard() {
             </div>
 
             {sections.length === 0 ? (
-              <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-xl max-w-sm mx-auto space-y-2">
+              <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-xl max-w-sm mx-auto space-y-2 px-4">
                 <p className="text-xs font-bold text-slate-600">No Sections Added</p>
                 <p className="text-[11px] text-slate-400">Click the button above to add your first exam section.</p>
               </div>
@@ -586,7 +588,7 @@ export default function CreateExamWizard() {
                 {sections.map((section, idx) => (
                   <div
                     key={idx}
-                    className="border border-slate-150 rounded-xl p-5 bg-slate-50/20 relative space-y-4"
+                    className="border border-slate-150 rounded-xl p-4 sm:p-5 bg-slate-50/20 relative space-y-4"
                   >
                     {/* Section Action Controls */}
                     <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -720,18 +722,18 @@ export default function CreateExamWizard() {
               </div>
             )}
 
-            <div className="flex justify-between pt-4 border-t border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-3 pt-4 border-t border-slate-100">
               <button
                 onClick={() => setStep(1)}
-                className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl transition-all"
+                className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl transition-all w-full sm:w-auto order-2 sm:order-1"
               >
                 Back
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 order-1 sm:order-2">
                 <button
                   onClick={() => handleSaveExam("draft")}
                   disabled={saving}
-                  className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Save Draft
@@ -751,7 +753,7 @@ export default function CreateExamWizard() {
                     setErrorMsg("");
                     setStep(3);
                   }}
-                  className="px-6 py-3 bg-[#1A56DB] hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                  className="px-6 py-3 bg-[#1A56DB] hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5"
                 >
                   Assign Questions
                   <ArrowRight className="h-4 w-4" />
@@ -763,7 +765,7 @@ export default function CreateExamWizard() {
 
         {/* STEP 3: Assign Questions */}
         {step === 3 && (
-          <div className="bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="bg-white border border-slate-100 rounded-2xl p-4 sm:p-8 shadow-sm space-y-6">
             <div>
               <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-400">
                 Step 3: Question Assignment
@@ -782,11 +784,11 @@ export default function CreateExamWizard() {
                 return (
                   <div
                     key={idx}
-                    className={`border rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
+                    className={`border rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-colors ${
                       isTargetMet ? "bg-emerald-50/20 border-emerald-200" : "bg-slate-50/20 border-slate-200"
                     }`}
                   >
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 flex-wrap">
                         {section.name}
                         {section.subject && (
@@ -815,16 +817,16 @@ export default function CreateExamWizard() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end md:self-auto">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
                       <button
                         onClick={() => openPickModal(idx)}
-                        className="px-4 py-2 bg-white border border-slate-200 hover:border-[#1A56DB] text-slate-700 hover:text-[#1A56DB] rounded-xl text-xs font-bold transition-all"
+                        className="px-4 py-2 bg-white border border-slate-200 hover:border-[#1A56DB] text-slate-700 hover:text-[#1A56DB] rounded-xl text-xs font-bold transition-all flex-1 lg:flex-none text-center"
                       >
                         Pick Questions ({assignedCount})
                       </button>
                       <button
                         onClick={() => handleAutoRandomize(idx)}
-                        className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-[#1A56DB] rounded-xl text-xs font-black transition-all flex items-center gap-1"
+                        className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-[#1A56DB] rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 flex-1 lg:flex-none"
                       >
                         <Sparkles className="h-3.5 w-3.5 text-blue-500" />
                         Auto-Randomize
@@ -835,18 +837,18 @@ export default function CreateExamWizard() {
               })}
             </div>
 
-            <div className="flex justify-between pt-4 border-t border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-3 pt-4 border-t border-slate-100">
               <button
                 onClick={() => setStep(2)}
-                className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl transition-all"
+                className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl transition-all w-full sm:w-auto order-2 sm:order-1"
               >
                 Back
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 order-1 sm:order-2">
                 <button
                   onClick={() => handleSaveExam("draft")}
                   disabled={saving}
-                  className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Save Draft
@@ -856,7 +858,7 @@ export default function CreateExamWizard() {
                     setErrorMsg("");
                     setStep(4);
                   }}
-                  className="px-6 py-3 bg-[#1A56DB] hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                  className="px-6 py-3 bg-[#1A56DB] hover:bg-blue-700 text-white text-xs font-black rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5"
                 >
                   Review & Publish
                   <ArrowRight className="h-4 w-4" />
@@ -868,7 +870,7 @@ export default function CreateExamWizard() {
 
         {/* STEP 4: Review and Publish */}
         {step === 4 && (
-          <div className="bg-white border border-slate-100 rounded-2xl p-6 sm:p-8 shadow-sm space-y-8">
+          <div className="bg-white border border-slate-100 rounded-2xl p-4 sm:p-8 shadow-sm space-y-6 sm:space-y-8">
             <div>
               <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-400">
                 Step 4: Final Review
@@ -878,11 +880,11 @@ export default function CreateExamWizard() {
               </p>
             </div>
 
-            <div className="space-y-6 border border-slate-150 rounded-xl p-5 bg-slate-50/20">
+            <div className="space-y-6 border border-slate-150 rounded-xl p-4 sm:p-5 bg-slate-50/20">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-b border-slate-100 pb-5">
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Mock Title</p>
-                  <p className="text-sm font-bold text-slate-800 mt-0.5">{title}</p>
+                  <p className="text-sm font-bold text-slate-800 mt-0.5 break-words">{title}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Category</p>
@@ -900,15 +902,15 @@ export default function CreateExamWizard() {
                 </p>
                 <div className="space-y-3">
                   {sections.map((sec, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-white border border-slate-100 p-3 rounded-lg text-xs">
-                      <div>
-                        <p className="font-bold text-slate-700">{sec.name}</p>
+                    <div key={idx} className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 bg-white border border-slate-100 p-3 rounded-lg text-xs">
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-700 break-words">{sec.name}</p>
                         <p className="text-[10px] text-slate-400 mt-0.5">
                           Duration: {sec.duration} mins | Target: {sec.questionCount} Qs
                           {sec.subject && <span className="ml-1.5 text-blue-500">· Subject: {sec.subject}</span>}
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-left sm:text-right shrink-0">
                         <p className="font-black text-slate-800">
                           {sec.questions.length} / {sec.questionCount} questions set
                         </p>
@@ -922,29 +924,37 @@ export default function CreateExamWizard() {
               </div>
             </div>
 
-            <div className="flex justify-between pt-4 border-t border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-3 pt-4 border-t border-slate-100">
               <button
                 onClick={() => setStep(3)}
-                className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl transition-all"
+                className="px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl transition-all w-full sm:w-auto order-2 sm:order-1"
               >
                 Back
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 order-1 sm:order-2">
                 <button
                   onClick={() => handleSaveExam("draft")}
                   disabled={saving}
-                  className="px-5 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5"
+                  className="px-4 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                   Save as Draft
                 </button>
                 <button
-                  onClick={() => handleSaveExam("published")}
+                  onClick={() => handleSaveExam("upcoming")}
                   disabled={saving}
-                  className="px-6 py-3 bg-[#1A56DB] hover:bg-blue-700 disabled:bg-blue-300 text-white text-xs font-black rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                  className="px-4 py-3 border border-amber-200 bg-amber-50 hover:bg-amber-100/50 text-amber-700 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
+                  Set as Upcoming
+                </button>
+                <button
+                  onClick={() => handleSaveExam("live")}
+                  disabled={saving}
+                  className="px-5 py-3 bg-[#1A56DB] hover:bg-blue-700 disabled:bg-blue-300 text-white text-xs font-black rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                  Publish Exam
+                  Publish Live
                 </button>
               </div>
             </div>
@@ -954,12 +964,12 @@ export default function CreateExamWizard() {
 
       {/* STEP 3 PICK QUESTIONS MODAL */}
       {isModalOpen && activeSectionIndex !== null && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] shadow-2xl flex flex-col overflow-hidden animate-scaleIn border border-slate-100">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-none sm:rounded-2xl w-full max-w-4xl h-full sm:h-auto max-h-full sm:max-h-[85vh] shadow-2xl flex flex-col overflow-hidden animate-scaleIn border-0 sm:border sm:border-slate-100">
             {/* Modal Header */}
-            <div className="p-5 bg-gradient-to-r from-blue-700 to-indigo-800 text-white flex justify-between items-center">
-              <div>
-                <h3 className="text-sm font-black font-heading">
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-700 to-indigo-800 text-white flex justify-between items-start gap-3">
+              <div className="min-w-0">
+                <h3 className="text-sm font-black font-heading truncate">
                   Pick Questions for: &quot;{sections[activeSectionIndex].name}&quot;
                 </h3>
                 <p className="text-[10px] text-blue-100 mt-0.5">
@@ -975,14 +985,14 @@ export default function CreateExamWizard() {
                   setIsModalOpen(false);
                   setActiveSectionIndex(null);
                 }}
-                className="text-blue-100 hover:text-white text-xs font-bold p-1"
+                className="text-blue-100 hover:text-white text-xs font-bold p-1 shrink-0"
               >
                 ✕ Close
               </button>
             </div>
 
             {/* Modal Filters */}
-            <div className="p-4 border-b border-slate-150 bg-slate-50 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+            <div className="p-3 sm:p-4 border-b border-slate-150 bg-slate-50 grid grid-cols-2 sm:grid-cols-4 gap-3 items-end">
               {/* Subject */}
               <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase text-slate-400">Subject</label>
@@ -1029,7 +1039,7 @@ export default function CreateExamWizard() {
               </div>
 
               {/* Search */}
-              <div className="space-y-1">
+              <div className="space-y-1 col-span-2 sm:col-span-1">
                 <label className="text-[9px] font-black uppercase text-slate-400">Search</label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-400" />
@@ -1045,14 +1055,14 @@ export default function CreateExamWizard() {
             </div>
 
             {/* Modal Questions List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/30 min-h-[300px]">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 bg-slate-50/30 min-h-[300px]">
               {loadingPool ? (
                 <div className="flex flex-col items-center justify-center py-20 space-y-2">
                   <Loader2 className="h-8 w-8 text-[#1A56DB] animate-spin" />
                   <p className="text-[11px] text-slate-400">Loading question bank...</p>
                 </div>
               ) : getFilteredModalQuestions().length === 0 ? (
-                <div className="text-center py-20 space-y-2">
+                <div className="text-center py-20 space-y-2 px-4">
                   <p className="text-slate-500 text-xs font-bold">No matching questions found.</p>
                   <p className="text-slate-400 text-[11px]">
                     {sections[activeSectionIndex]?.subject
@@ -1068,7 +1078,7 @@ export default function CreateExamWizard() {
                     <div
                       key={q._id}
                       onClick={() => handleToggleQuestionSelect(q._id)}
-                      className={`border rounded-xl p-3.5 flex items-start gap-3.5 cursor-pointer bg-white transition-all hover:border-[#1A56DB] ${
+                      className={`border rounded-xl p-3 sm:p-3.5 flex items-start gap-3 sm:gap-3.5 cursor-pointer bg-white transition-all hover:border-[#1A56DB] ${
                         isChecked ? "border-[#1A56DB] ring-1 ring-[#1A56DB]/20" : "border-slate-200"
                       }`}
                     >
@@ -1098,12 +1108,12 @@ export default function CreateExamWizard() {
                             {q.difficulty}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-700 leading-relaxed font-semibold">{q.question}</p>
-                        <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 font-medium">
-                          <div>A) {q.optionA}</div>
-                          <div>B) {q.optionB}</div>
-                          <div>C) {q.optionC}</div>
-                          <div>D) {q.optionD}</div>
+                        <p className="text-xs text-slate-700 leading-relaxed font-semibold break-words">{q.question}</p>
+                        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 gap-1.5 sm:gap-2 text-[10px] text-slate-500 font-medium">
+                          <div className="break-words">A) {q.optionA}</div>
+                          <div className="break-words">B) {q.optionB}</div>
+                          <div className="break-words">C) {q.optionC}</div>
+                          <div className="break-words">D) {q.optionD}</div>
                         </div>
                       </div>
                     </div>
@@ -1113,8 +1123,8 @@ export default function CreateExamWizard() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-150 flex items-center justify-between bg-slate-50">
-              <span className="text-[11px] font-bold text-slate-500">
+            <div className="p-3 sm:p-4 border-t border-slate-150 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50">
+              <span className="text-[11px] font-bold text-slate-500 text-center sm:text-left">
                 Selected: {selectedQuestionIds.length} of{" "}
                 {sections[activeSectionIndex].questionCount} target questions
               </span>
@@ -1124,13 +1134,13 @@ export default function CreateExamWizard() {
                     setIsModalOpen(false);
                     setActiveSectionIndex(null);
                   }}
-                  className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl transition-all"
+                  className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl transition-all flex-1 sm:flex-none"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={applySelectedQuestions}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition-all shadow-sm"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition-all shadow-sm flex-1 sm:flex-none"
                 >
                   Confirm & Assign Selection
                 </button>

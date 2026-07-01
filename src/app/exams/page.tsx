@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/ui/Header";
-import { BookOpen, Users, Layers, FileText } from "lucide-react";
+import { BookOpen, Users, Layers, FileText, Clock } from "lucide-react";
 
 interface ExamSection {
   name: string;
@@ -52,7 +52,7 @@ function CatalogContent() {
       .then((data) => {
         setCategories(["All", ...(data.categories || [])]);
       })
-      .catch(() => setCategories(["All", "SSC", "Railway", "Banking", "PSC"]));
+      .catch(() => setCategories(["All"]));
   }, []);
 
   useEffect(() => {
@@ -241,11 +241,16 @@ function CatalogContent() {
               const diff = getExamDifficulty(exam);
               const qCount = getExamQuestionsCount(exam);
               const marks = getExamTotalMarks(exam);
+              const isUpcoming = exam.status === "upcoming";
 
               return (
                 <div
                   key={exam._id}
-                  className="bg-white rounded-2xl border border-slate-100 hover:border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 p-6 flex flex-col justify-between"
+                  className={`bg-white rounded-2xl border border-slate-100 shadow-sm transition-all duration-200 p-6 flex flex-col justify-between ${
+                    isUpcoming
+                      ? "opacity-80 border-slate-200/80 bg-slate-50/20"
+                      : "hover:border-slate-200 hover:shadow-md"
+                  }`}
                 >
                   <div>
                     {/* Badge Row */}
@@ -255,10 +260,16 @@ function CatalogContent() {
                       >
                         {exam.category === "PSC" ? "State PSC" : exam.category}
                       </span>
-                      <div className="flex gap-1.5 items-center">
-                        <span className="rounded bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5 text-[10px] font-extrabold uppercase">
-                          FREE
-                        </span>
+                      <div className="flex gap-1.5 items-center font-bold">
+                        {isUpcoming ? (
+                          <span className="rounded bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 text-[10px] font-extrabold uppercase">
+                            Upcoming
+                          </span>
+                        ) : (
+                          <span className="rounded bg-emerald-100 text-emerald-855 border border-emerald-200 px-2 py-0.5 text-[10px] font-extrabold uppercase">
+                            FREE
+                          </span>
+                        )}
                         <span
                           className={`rounded border px-2 py-0.5 text-[10px] font-bold ${diff.color}`}
                         >
@@ -316,13 +327,23 @@ function CatalogContent() {
                       <Users className="h-4 w-4 text-slate-400" />
                       <span>{exam.attemptCount || 0} attempted</span>
                     </div>
-                    <Link
-                      href={`/exam/${exam._id}`}
-                      className="inline-flex items-center gap-1 rounded-lg bg-[#1A56DB] hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors"
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      Attempt Now
-                    </Link>
+                    {isUpcoming ? (
+                      <button
+                        disabled
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 border border-slate-200 px-4 py-2 text-xs font-bold text-slate-400 cursor-not-allowed"
+                      >
+                        <Clock className="h-3.5 w-3.5 text-slate-400" />
+                        Coming Soon
+                      </button>
+                    ) : (
+                      <Link
+                        href={`/exam/${exam._id}`}
+                        className="inline-flex items-center gap-1 rounded-lg bg-[#1A56DB] hover:bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        Attempt Now
+                      </Link>
+                    )}
                   </div>
                 </div>
               );

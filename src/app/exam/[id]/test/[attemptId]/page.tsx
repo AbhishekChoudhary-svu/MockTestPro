@@ -15,6 +15,8 @@ import {
   X,
   Lock,
   Maximize,
+  Grid,
+  Menu,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -22,6 +24,7 @@ import {
 interface IQuestion {
   _id: string;
   question: string;
+  passage?: string; // shared passage/context text
   optionA: string;
   optionB: string;
   optionC: string;
@@ -126,6 +129,9 @@ export default function LiveExamPage({
 
   // Question start time for timeSpent tracking
   const questionStartRef = useRef<number>(Date.now());
+
+  // Mobile sidebar state
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   // Flat index helper
   const flatIndex = exam ? buildFlatIndex(exam.sections) : [];
@@ -475,6 +481,7 @@ export default function LiveExamPage({
     setActiveSectionIdx(si);
     setActiveQIdx(qi);
     questionStartRef.current = Date.now();
+    setShowMobileSidebar(false); // Close sidebar on mobile selection
   };
 
   const goNext = async () => {
@@ -602,15 +609,37 @@ export default function LiveExamPage({
 
       {/* ── Top Bar ── */}
       <header className="flex-shrink-0 bg-slate-800 border-b border-slate-700 px-4 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-bold text-slate-300 font-heading truncate max-w-xs">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-sm font-bold text-slate-300 font-heading truncate max-w-[120px] sm:max-w-xs">
             {exam.title}
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Fullscreen re-enter button */}
+          {!isFullscreen && (
+            <button
+              onClick={enterFullscreen}
+              className="flex items-center gap-1.5 rounded-lg bg-amber-50 hover:bg-amber-600 px-2 py-1.5 text-[10px] sm:text-xs font-bold text-slate-900 transition-colors"
+              title="Re-enter fullscreen"
+            >
+              <Maximize className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Fullscreen</span>
+            </button>
+          )}
+
+          {/* Palette button toggle for mobile/tablet */}
+          <button
+            onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+            className="lg:hidden flex items-center gap-1 bg-slate-700 hover:bg-slate-600 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold text-slate-200 transition-colors"
+            title="Toggle Question Palette"
+          >
+            <Grid className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Palette</span>
+          </button>
+
           {/* Section Timer */}
           <div
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-bold ${
+            className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-bold ${
               sectionTimer < 120 && sectionTimer > 0
                 ? "bg-red-600 text-white animate-pulse"
                 : sectionTimerExpired
@@ -618,39 +647,30 @@ export default function LiveExamPage({
                 : "bg-slate-700 text-slate-200"
             }`}
           >
-            <Clock className="h-4 w-4" />
-            <span className="text-xs text-slate-300 mr-0.5">Section:</span>
+            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="text-[10px] sm:text-xs text-slate-300 mr-0.5 hidden xs:inline">Section:</span>
             {sectionTimerExpired ? "Done ✓" : formatTime(sectionTimer)}
           </div>
+
           {/* Overall Timer */}
           <div
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-bold ${
+            className={`flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-bold ${
               overallTimer < 300
                 ? "bg-red-600 text-white animate-pulse"
                 : "bg-blue-700 text-white"
             }`}
           >
-            <Clock className="h-4 w-4" />
-            <span className="text-xs mr-0.5 opacity-70">Total:</span>
+            <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="text-[10px] sm:text-xs mr-0.5 opacity-70 hidden xs:inline">Total:</span>
             {formatTime(overallTimer)}
           </div>
-          {/* Fullscreen re-enter button */}
-          {!isFullscreen && (
-            <button
-              onClick={enterFullscreen}
-              className="flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-3 py-1.5 text-xs font-bold text-slate-900 transition-colors"
-              title="Re-enter fullscreen"
-            >
-              <Maximize className="h-4 w-4" />
-              Fullscreen
-            </button>
-          )}
+
           {/* Submit Button */}
           <button
             onClick={() => setShowSubmitModal(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-bold transition-colors"
+            className="flex items-center gap-1 sm:gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-bold transition-colors"
           >
-            <Send className="h-4 w-4" />
+            <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Submit
           </button>
         </div>
@@ -731,8 +751,22 @@ export default function LiveExamPage({
       )}
 
       {/* ── Main Body ── */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* ── Question Panel (left) ── */}
+      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+        {/* If question has a passage, show the Passage Panel */}
+        {question?.passage && (
+          <aside className="w-full lg:w-1/2 h-[35vh] lg:h-full flex flex-col border-b lg:border-b-0 lg:border-r border-slate-700 bg-slate-800/20 overflow-y-auto p-5 shrink-0">
+            <div className="mb-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#1A56DB] bg-blue-500/10 px-2.5 py-1 rounded border border-blue-500/20">
+                Passage / Context
+              </span>
+            </div>
+            <div className="whitespace-pre-wrap text-sm text-slate-200 leading-relaxed bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 font-medium">
+              {question.passage}
+            </div>
+          </aside>
+        )}
+
+        {/* ── Question Panel (right or full width) ── */}
         <main className="flex flex-1 flex-col overflow-y-auto bg-slate-900 p-5">
           {/* Question Header */}
           <div className="mb-5 flex items-center justify-between">
@@ -749,7 +783,7 @@ export default function LiveExamPage({
 
           {/* Question Text */}
           <div className="mb-6 rounded-xl bg-slate-800 border border-slate-700 p-5">
-            <p className="text-base font-medium text-slate-100 leading-relaxed">
+            <p className="text-base font-medium text-slate-100 leading-relaxed whitespace-pre-wrap">
               {question?.question ?? "Question not found."}
             </p>
           </div>
@@ -849,8 +883,30 @@ export default function LiveExamPage({
           </div>
         </main>
 
+        {/* Backdrop for mobile */}
+        {showMobileSidebar && (
+          <div
+            className="fixed inset-0 z-35 bg-black/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setShowMobileSidebar(false)}
+          />
+        )}
+
         {/* ── Navigation Palette (right sidebar) ── */}
-        <aside className="w-64 flex-shrink-0 overflow-y-auto bg-slate-800 border-l border-slate-700 p-4 flex flex-col gap-4">
+        <aside
+          className={`fixed inset-y-0 right-0 z-40 w-64 bg-slate-800 border-l border-slate-700 p-4 flex flex-col gap-4 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:z-auto ${
+            showMobileSidebar ? "translate-x-0" : "translate-x-full lg:translate-x-0"
+          } overflow-y-auto flex-shrink-0`}
+        >
+          {/* Close button for mobile palette header */}
+          <div className="flex lg:hidden items-center justify-between border-b border-slate-750 pb-2.5">
+            <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Question Palette</span>
+            <button
+              onClick={() => setShowMobileSidebar(false)}
+              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded-lg transition"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
+          </div>
           {/* Legend */}
           <div className="grid grid-cols-2 gap-2 text-[10px] font-semibold">
             <div className="flex items-center gap-1.5">
